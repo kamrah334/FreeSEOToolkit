@@ -5,10 +5,14 @@ import {
   titleCaseRequestSchema,
   keywordDensityRequestSchema,
   blogOutlineRequestSchema,
+  blogPostRequestSchema,
+  articleRequestSchema,
   type MetaDescriptionResponse,
   type TitleCaseResponse,
   type KeywordDensityResponse,
-  type BlogOutlineResponse
+  type BlogOutlineResponse,
+  type BlogPostResponse,
+  type ArticleResponse
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -334,6 +338,370 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Helper function to calculate SEO score
+  function calculateSEOScore(content: string, title: string, keywords?: string): { score: number, tips: string[] } {
+    const tips: string[] = [];
+    let score = 0;
+
+    // Check title length
+    if (title.length >= 50 && title.length <= 60) {
+      score += 15;
+    } else {
+      tips.push("Title should be 50-60 characters for optimal SEO");
+    }
+
+    // Check content length
+    const wordCount = content.split(/\s+/).length;
+    if (wordCount >= 300) {
+      score += 20;
+    } else {
+      tips.push("Content should be at least 300 words for better SEO");
+    }
+
+    // Check keyword usage if provided
+    if (keywords) {
+      const keywordList = keywords.toLowerCase().split(',').map(k => k.trim());
+      const contentLower = content.toLowerCase();
+      const titleLower = title.toLowerCase();
+
+      let keywordScore = 0;
+      keywordList.forEach(keyword => {
+        if (titleLower.includes(keyword)) keywordScore += 5;
+        if (contentLower.includes(keyword)) keywordScore += 10;
+      });
+      score += Math.min(keywordScore, 25);
+
+      if (keywordScore === 0) {
+        tips.push("Include target keywords in title and content");
+      }
+    }
+
+    // Check for headers
+    const headerCount = (content.match(/^##\s/gm) || []).length;
+    if (headerCount >= 3) {
+      score += 15;
+    } else {
+      tips.push("Use at least 3 H2 headers to structure your content");
+    }
+
+    // Check paragraph structure
+    const paragraphs = content.split('\n\n').filter(p => p.trim().length > 0);
+    if (paragraphs.length >= 4) {
+      score += 10;
+    } else {
+      tips.push("Break content into multiple paragraphs (4+) for better readability");
+    }
+
+    // Check for bullet points or lists
+    if (content.includes('- ') || content.includes('* ')) {
+      score += 10;
+    } else {
+      tips.push("Use bullet points or lists to improve readability");
+    }
+
+    // Check for call-to-action
+    const ctaWords = ['learn', 'discover', 'get started', 'try', 'download', 'contact', 'subscribe'];
+    if (ctaWords.some(word => content.toLowerCase().includes(word))) {
+      score += 5;
+    } else {
+      tips.push("Include a call-to-action to engage readers");
+    }
+
+    return { score: Math.min(score, 100), tips };
+  }
+
+  // Helper function to generate tags
+  function generateTags(title: string, keywords?: string): string[] {
+    const tags = [];
+    const titleWords = title.toLowerCase().split(' ').filter(word => word.length > 3);
+    tags.push(...titleWords.slice(0, 3));
+
+    if (keywords) {
+      const keywordList = keywords.split(',').map(k => k.trim().toLowerCase());
+      tags.push(...keywordList.slice(0, 2));
+    }
+
+    // Remove duplicates and return top 5
+    return Array.from(new Set(tags)).slice(0, 5);
+  }
+
+  // Blog Post Writer
+  app.post("/api/blog-post", async (req, res) => {
+    try {
+      const { outline, title, targetKeywords, audience, tone, length } = blogPostRequestSchema.parse(req.body);
+      
+      // Determine word count target
+      const wordTargets = { short: 800, medium: 1500, long: 2500 };
+      const targetWordCount = wordTargets[length];
+      
+      // Generate content based on outline or create new structure
+      let content = '';
+      let structure = [];
+
+      if (outline && outline.sections) {
+        // Use provided outline
+        structure = outline.sections;
+        content = generateBlogContent(outline.sections, title, targetKeywords, tone, targetWordCount);
+      } else {
+        // Create basic structure
+        const topicWords = title.split(' ');
+        const mainTopic = topicWords.slice(0, 3).join(' ');
+        
+        structure = [
+          { heading: "Introduction", level: 2 },
+          { heading: `Understanding ${mainTopic}`, level: 2 },
+          { heading: "Key Benefits and Features", level: 2 },
+          { heading: "Best Practices", level: 2 },
+          { heading: "Common Mistakes to Avoid", level: 2 },
+          { heading: "Conclusion", level: 2 }
+        ];
+        
+        content = generateBlogContent(structure, title, targetKeywords, tone, targetWordCount);
+      }
+
+      // Calculate SEO metrics
+      const wordCount = content.split(/\s+/).length;
+      const readingTime = Math.ceil(wordCount / 250);
+      const { score, tips } = calculateSEOScore(content, title, targetKeywords);
+      
+      // Generate meta description
+      const metaDescription = generateMetaDescription(title, content, targetKeywords);
+      const suggestedTags = generateTags(title, targetKeywords);
+
+      const response: BlogPostResponse = {
+        title,
+        content,
+        wordCount,
+        readingTime,
+        seoScore: score,
+        seoTips: tips,
+        metaDescription,
+        suggestedTags,
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Blog post generation error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate blog post" 
+      });
+    }
+  });
+
+  // Article Writer
+  app.post("/api/article", async (req, res) => {
+    try {
+      const { topic, targetKeywords, audience, style, length, includeIntro, includeConclusion } = articleRequestSchema.parse(req.body);
+      
+      // Determine word count target
+      const wordTargets = { short: 600, medium: 1200, long: 2000 };
+      const targetWordCount = wordTargets[length];
+      
+      // Create article structure based on style
+      const structure = createArticleStructure(topic, style, includeIntro, includeConclusion);
+      
+      // Generate optimized title
+      const title = generateArticleTitle(topic, style, targetKeywords);
+      
+      // Generate content
+      const content = generateArticleContent(structure, topic, targetKeywords, style, targetWordCount, audience);
+
+      // Calculate SEO metrics
+      const wordCount = content.split(/\s+/).length;
+      const readingTime = Math.ceil(wordCount / 250);
+      const { score, tips } = calculateSEOScore(content, title, targetKeywords);
+      
+      // Generate meta description
+      const metaDescription = generateMetaDescription(title, content, targetKeywords);
+      const suggestedTags = generateTags(title, targetKeywords);
+
+      const response: ArticleResponse = {
+        title,
+        content,
+        wordCount,
+        readingTime,
+        seoScore: score,
+        seoTips: tips,
+        metaDescription,
+        suggestedTags,
+        structure: structure.map(s => ({ heading: s.heading, level: s.level }))
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Article generation error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to generate article" 
+      });
+    }
+  });
+
+  // Helper functions for content generation
+  function generateBlogContent(sections: any[], title: string, keywords?: string, tone = 'professional', targetWords = 1500): string {
+    const wordsPerSection = Math.floor(targetWords / sections.length);
+    let content = '';
+
+    sections.forEach((section, index) => {
+      content += `## ${section.heading}\n\n`;
+      
+      // Generate content based on section type
+      if (section.heading.toLowerCase().includes('introduction')) {
+        content += generateIntroduction(title, keywords, tone, wordsPerSection);
+      } else if (section.heading.toLowerCase().includes('conclusion')) {
+        content += generateConclusion(title, keywords, tone, wordsPerSection);
+      } else {
+        content += generateSectionContent(section.heading, keywords, tone, wordsPerSection);
+      }
+      
+      // Add subsections if they exist
+      if (section.subsections && section.subsections.length > 0) {
+        section.subsections.forEach((sub: string) => {
+          content += `\n### ${sub}\n\n`;
+          content += generateSubsectionContent(sub, keywords, tone, Math.floor(wordsPerSection / 3));
+        });
+      }
+      
+      content += '\n\n';
+    });
+
+    return content.trim();
+  }
+
+  function generateIntroduction(title: string, keywords?: string, tone = 'professional', targetWords = 150): string {
+    const keywordText = keywords ? keywords.split(',')[0].trim() : title.split(' ')[0];
+    
+    const intros = [
+      `In today's digital landscape, understanding ${keywordText} is crucial for success. This comprehensive guide will walk you through everything you need to know about ${title.toLowerCase()}.`,
+      `Whether you're a beginner or looking to enhance your knowledge, ${keywordText} plays a vital role in achieving your goals. Let's explore the key aspects that matter most.`,
+      `${keywordText} has become increasingly important, and mastering it can give you a significant advantage. In this article, we'll dive deep into the essential concepts and practical strategies.`
+    ];
+    
+    return intros[Math.floor(Math.random() * intros.length)] + '\n\nYou\'ll discover practical strategies, expert tips, and actionable insights that you can implement immediately. By the end of this guide, you\'ll have a clear understanding of how to leverage these concepts effectively.';
+  }
+
+  function generateConclusion(title: string, keywords?: string, tone = 'professional', targetWords = 150): string {
+    const keywordText = keywords ? keywords.split(',')[0].trim() : title.split(' ')[0];
+    
+    return `In conclusion, mastering ${keywordText} is essential for achieving your objectives. Throughout this guide, we've covered the fundamental concepts, best practices, and practical strategies that will help you succeed.\n\nRemember to implement these insights gradually and monitor your results. Success with ${keywordText} requires patience, consistency, and continuous learning. Start with the basics and progressively advance to more sophisticated techniques.\n\nTake action today and begin applying these principles to see real results in your endeavors.`;
+  }
+
+  function generateSectionContent(heading: string, keywords?: string, tone = 'professional', targetWords = 200): string {
+    const keywordText = keywords ? keywords.split(',')[0].trim() : heading.split(' ')[0];
+    
+    const templates = [
+      `When it comes to ${heading.toLowerCase()}, there are several important factors to consider. ${keywordText} plays a crucial role in determining your success and overall effectiveness.\n\nHere are the key points to remember:\n\n- Focus on quality over quantity in your approach\n- Consistency is essential for long-term success\n- Regular monitoring and optimization improve results\n- Stay updated with industry best practices and trends\n\nImplementing these strategies will help you achieve better outcomes and maintain a competitive advantage in your field.`,
+      
+      `${heading} requires careful planning and execution. Understanding the fundamentals of ${keywordText} will provide you with a solid foundation for success.\n\nConsider these essential elements:\n\n- Set clear, measurable objectives from the start\n- Develop a systematic approach to implementation\n- Track your progress and adjust strategies as needed\n- Learn from both successes and setbacks\n\nBy following these guidelines, you'll be well-positioned to achieve your goals and maximize your potential in this area.`,
+    ];
+    
+    return templates[Math.floor(Math.random() * templates.length)];
+  }
+
+  function generateSubsectionContent(heading: string, keywords?: string, tone = 'professional', targetWords = 100): string {
+    const keywordText = keywords ? keywords.split(',')[0].trim() : heading.split(' ')[0];
+    return `${heading} is an important aspect that deserves careful attention. When working with ${keywordText}, focus on practical implementation and measurable results. This approach ensures you get the most value from your efforts while maintaining efficiency and effectiveness.`;
+  }
+
+  function createArticleStructure(topic: string, style: string, includeIntro: boolean, includeConclusion: boolean) {
+    const structure = [];
+    
+    if (includeIntro) {
+      structure.push({ heading: "Introduction", level: 2 });
+    }
+
+    switch (style) {
+      case 'how-to':
+        structure.push(
+          { heading: "What You'll Need", level: 2 },
+          { heading: "Step-by-Step Guide", level: 2 },
+          { heading: "Tips for Success", level: 2 },
+          { heading: "Common Mistakes to Avoid", level: 2 }
+        );
+        break;
+      case 'listicle':
+        for (let i = 1; i <= 7; i++) {
+          structure.push({ heading: `${i}. Key Point About ${topic}`, level: 2 });
+        }
+        break;
+      case 'news':
+        structure.push(
+          { heading: "Key Details", level: 2 },
+          { heading: "Impact and Implications", level: 2 },
+          { heading: "What This Means for You", level: 2 }
+        );
+        break;
+      case 'opinion':
+        structure.push(
+          { heading: "The Current Situation", level: 2 },
+          { heading: "Why This Matters", level: 2 },
+          { heading: "My Perspective", level: 2 },
+          { heading: "Looking Forward", level: 2 }
+        );
+        break;
+      case 'research':
+        structure.push(
+          { heading: "Background", level: 2 },
+          { heading: "Key Findings", level: 2 },
+          { heading: "Analysis", level: 2 },
+          { heading: "Implications", level: 2 }
+        );
+        break;
+    }
+
+    if (includeConclusion) {
+      structure.push({ heading: "Conclusion", level: 2 });
+    }
+
+    return structure;
+  }
+
+  function generateArticleTitle(topic: string, style: string, keywords?: string): string {
+    const keywordText = keywords ? keywords.split(',')[0].trim() : topic;
+    
+    switch (style) {
+      case 'how-to':
+        return `How to Master ${topic}: Complete Guide for ${new Date().getFullYear()}`;
+      case 'listicle':
+        return `7 Essential Things You Need to Know About ${topic}`;
+      case 'news':
+        return `Breaking: Latest Developments in ${topic}`;
+      case 'opinion':
+        return `Why ${topic} is More Important Than Ever`;
+      case 'research':
+        return `Comprehensive Analysis: The State of ${topic}`;
+      default:
+        return `Complete Guide to ${topic}`;
+    }
+  }
+
+  function generateArticleContent(structure: any[], topic: string, keywords?: string, style = 'how-to', targetWords = 1200, audience?: string): string {
+    const wordsPerSection = Math.floor(targetWords / structure.length);
+    let content = '';
+
+    structure.forEach((section) => {
+      content += `## ${section.heading}\n\n`;
+      
+      if (section.heading.toLowerCase().includes('introduction')) {
+        content += generateIntroduction(topic, keywords, 'professional', wordsPerSection);
+      } else if (section.heading.toLowerCase().includes('conclusion')) {
+        content += generateConclusion(topic, keywords, 'professional', wordsPerSection);
+      } else {
+        content += generateSectionContent(section.heading, keywords, 'professional', wordsPerSection);
+      }
+      
+      content += '\n\n';
+    });
+
+    return content.trim();
+  }
+
+  function generateMetaDescription(title: string, content: string, keywords?: string): string {
+    const keywordText = keywords ? keywords.split(',')[0].trim() : title.split(' ')[0];
+    const description = `Discover everything you need to know about ${title.toLowerCase()}. Learn practical strategies, expert tips, and best practices for ${keywordText}. Complete guide with actionable insights.`;
+    
+    return description.length > 160 ? description.substring(0, 157) + "..." : description;
+  }
 
   const httpServer = createServer(app);
   return httpServer;

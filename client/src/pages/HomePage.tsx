@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { FileText, Type, BarChart3, List } from "lucide-react";
+import { FileText, Type, BarChart3, List, PenTool, FileEdit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
@@ -44,6 +44,26 @@ export default function HomePage() {
       iconColor: "text-purple-600",
       href: "/blog-outline",
     },
+    {
+      icon: PenTool,
+      title: "Blog Post Writer",
+      description: "Generate complete SEO-optimized blog posts with automatic keyword integration",
+      badge: "SEO Optimized • Free",
+      badgeColor: "text-green-600",
+      iconBg: "bg-green-100 group-hover:bg-green-200",
+      iconColor: "text-green-600",
+      href: "/blog-post-writer",
+    },
+    {
+      icon: FileEdit,
+      title: "Article Writer",
+      description: "Create professional articles with customizable styles and automatic SEO scoring",
+      badge: "Professional • Free",
+      badgeColor: "text-blue-600",
+      iconBg: "bg-blue-100 group-hover:bg-blue-200",
+      iconColor: "text-blue-600",
+      href: "/article-writer",
+    },
   ];
 
   return (
@@ -55,7 +75,7 @@ export default function HomePage() {
             Professional <span className="text-primary-600">SEO Tools</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Boost your content's search engine performance with our comprehensive suite of AI-powered SEO tools. Generate meta descriptions, optimize titles, analyze keyword density, and create blog outlines.
+            Boost your content's search engine performance with our comprehensive suite of AI-powered SEO tools. Generate meta descriptions, optimize titles, analyze keyword density, create blog outlines, and write complete SEO-optimized content.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -84,7 +104,7 @@ export default function HomePage() {
             <p className="text-lg text-gray-600">Each tool is designed to solve specific SEO challenges</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {tools.map((tool) => (
               <Link
                 key={tool.href}

@@ -58,6 +58,53 @@ export const blogOutlineResponseSchema = z.object({
   estimatedReadingTime: z.number(),
 });
 
+// Blog Post Writer
+export const blogPostRequestSchema = z.object({
+  outline: blogOutlineResponseSchema.optional(),
+  title: z.string().min(1, "Title is required"),
+  targetKeywords: z.string().optional(),
+  audience: z.string().optional(),
+  tone: z.enum(["professional", "casual", "friendly", "authoritative"]).default("professional"),
+  length: z.enum(["short", "medium", "long"]).default("medium"),
+});
+
+export const blogPostResponseSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+  wordCount: z.number(),
+  readingTime: z.number(),
+  seoScore: z.number(),
+  seoTips: z.array(z.string()),
+  metaDescription: z.string(),
+  suggestedTags: z.array(z.string()),
+});
+
+// Article Writer
+export const articleRequestSchema = z.object({
+  topic: z.string().min(1, "Topic is required"),
+  targetKeywords: z.string().optional(),
+  audience: z.string().optional(),
+  style: z.enum(["news", "how-to", "listicle", "opinion", "research"]).default("how-to"),
+  length: z.enum(["short", "medium", "long"]).default("medium"),
+  includeIntro: z.boolean().default(true),
+  includeConclusion: z.boolean().default(true),
+});
+
+export const articleResponseSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+  wordCount: z.number(),
+  readingTime: z.number(),
+  seoScore: z.number(),
+  seoTips: z.array(z.string()),
+  metaDescription: z.string(),
+  suggestedTags: z.array(z.string()),
+  structure: z.array(z.object({
+    heading: z.string(),
+    level: z.number(),
+  })),
+});
+
 // Type exports
 export type MetaDescriptionRequest = z.infer<typeof metaDescriptionRequestSchema>;
 export type MetaDescriptionResponse = z.infer<typeof metaDescriptionResponseSchema>;
@@ -67,3 +114,7 @@ export type KeywordDensityRequest = z.infer<typeof keywordDensityRequestSchema>;
 export type KeywordDensityResponse = z.infer<typeof keywordDensityResponseSchema>;
 export type BlogOutlineRequest = z.infer<typeof blogOutlineRequestSchema>;
 export type BlogOutlineResponse = z.infer<typeof blogOutlineResponseSchema>;
+export type BlogPostRequest = z.infer<typeof blogPostRequestSchema>;
+export type BlogPostResponse = z.infer<typeof blogPostResponseSchema>;
+export type ArticleRequest = z.infer<typeof articleRequestSchema>;
+export type ArticleResponse = z.infer<typeof articleResponseSchema>;

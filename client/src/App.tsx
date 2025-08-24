@@ -10,6 +10,8 @@ import MetaDescriptionTool from "@/pages/MetaDescriptionTool";
 import TitleCaseTool from "@/pages/TitleCaseTool";
 import KeywordDensityTool from "@/pages/KeywordDensityTool";
 import BlogOutlineTool from "@/pages/BlogOutlineTool";
+import BlogPostWriterTool from "@/pages/BlogPostWriterTool";
+import ArticleWriterTool from "@/pages/ArticleWriterTool";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +25,8 @@ function Router() {
           <Route path="/title-case" component={TitleCaseTool} />
           <Route path="/keyword-density" component={KeywordDensityTool} />
           <Route path="/blog-outline" component={BlogOutlineTool} />
+          <Route path="/blog-post-writer" component={BlogPostWriterTool} />
+          <Route path="/article-writer" component={ArticleWriterTool} />
           <Route component={NotFound} />
         </Switch>
       </main>
