@@ -12,7 +12,35 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { articleRequestSchema, type ArticleRequest, type ArticleResponse } from "@shared/schema";
+import { z } from "zod";
+
+// Inline schemas to avoid import issues
+const articleRequestSchema = z.object({
+  topic: z.string().min(1, "Topic is required"),
+  targetKeywords: z.string().optional(),
+  audience: z.string().optional(),
+  style: z.enum(["how-to", "listicle", "news", "opinion", "research"]).default("how-to"),
+  length: z.enum(["short", "medium", "long"]).default("medium"),
+  includeIntro: z.boolean().default(true),
+  includeConclusion: z.boolean().default(true),
+});
+
+type ArticleRequest = z.infer<typeof articleRequestSchema>;
+
+interface ArticleResponse {
+  title: string;
+  content: string;
+  wordCount: number;
+  readingTime: number;
+  seoScore: number;
+  suggestedTags: string[];
+  metaDescription: string;
+  seoTips: string[];
+  structure: Array<{
+    heading: string;
+    level: number;
+  }>;
+}
 
 export default function ArticleWriterTool() {
   const { toast } = useToast();

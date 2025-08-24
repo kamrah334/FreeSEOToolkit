@@ -12,7 +12,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { blogPostRequestSchema, type BlogPostRequest, type BlogPostResponse } from "@shared/schema";
+import { z } from "zod";
+
+// Inline schemas to avoid import issues
+const blogPostRequestSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  targetKeywords: z.string().optional(),
+  audience: z.string().optional(),
+  tone: z.enum(["professional", "casual", "friendly", "authoritative"]).default("professional"),
+  length: z.enum(["short", "medium", "long"]).default("medium"),
+});
+
+type BlogPostRequest = z.infer<typeof blogPostRequestSchema>;
+
+interface BlogPostResponse {
+  title: string;
+  content: string;
+  wordCount: number;
+  readingTime: number;
+  seoScore: number;
+  suggestedTags: string[];
+  metaDescription: string;
+  seoTips: string[];
+}
 
 export default function BlogPostWriterTool() {
   const { toast } = useToast();
