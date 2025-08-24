@@ -1,5 +1,10 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { titleCaseRequestSchema, type TitleCaseResponse } from "../shared/schema";
+
+interface TitleCaseResponse {
+  original: string;
+  converted: string;
+  rulesApplied: string[];
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -7,7 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { text } = titleCaseRequestSchema.parse(req.body);
+    const { text } = req.body;
+    
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return res.status(400).json({ message: 'Text is required' });
+    }
     
     const stopWords = new Set([
       'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'if', 'in', 

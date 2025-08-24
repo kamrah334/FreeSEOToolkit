@@ -1,5 +1,15 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { blogOutlineRequestSchema, type BlogOutlineResponse } from "../shared/schema";
+
+interface BlogOutlineResponse {
+  title: string;
+  sections: Array<{
+    heading: string;
+    level: number;
+    subsections?: string[];
+  }>;
+  estimatedWordCount: number;
+  estimatedReadingTime: number;
+}
 
 // Helper function to call Hugging Face API
 async function callHuggingFace(prompt: string): Promise<string> {
@@ -65,14 +75,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { topic, audience, length } = blogOutlineRequestSchema.parse(req.body);
+    const { topic, audience, length } = req.body;
+    
+    if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+      return res.status(400).json({ message: 'Topic is required' });
+    }
+    
+    const validatedLength = length && ['short', 'medium', 'long'].includes(length) ? length : 'medium';
     
     let sections: any[] = [];
     
     try {
       const audienceText = audience ? ` for ${audience}` : "";
-      const lengthText = length === "short" ? "5-7 sections" : 
-                       length === "medium" ? "7-10 sections" : "10-15 sections";
+      const lengthText = validatedLength === "short" ? "5-7 sections" : 
+                       validatedLength === "medium" ? "7-10 sections" : "10-15 sections";
       
       const prompt = `Create a detailed blog outline for: "${topic}"${audienceText}. Include ${lengthText} with H1, H2, and H3 headings. Structure it as a comprehensive guide with introduction and conclusion.`;
       
@@ -143,17 +159,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ];
       
       // Adjust outline based on length
-      if (length === "short") {
+      if (validatedLength === "short") {
         sections = baseOutline.slice(0, 4);
-      } else if (length === "medium") {
+      } else if (validatedLength === "medium") {
         sections = baseOutline.slice(0, 5);
       } else {
         sections = baseOutline;
       }
     }
 
-    const estimatedWordCount = length === "short" ? 1200 : 
-                              length === "medium" ? 2500 : 4000;
+    const estimatedWordCount = validatedLength === "short" ? 1200 : 
+                              validatedLength === "medium" ? 2500 : 4000;
     const estimatedReadingTime = Math.ceil(estimatedWordCount / 250);
 
     const response: BlogOutlineResponse = {

@@ -1,5 +1,17 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { keywordDensityRequestSchema, type KeywordDensityResponse } from "../shared/schema";
+
+interface KeywordDensityResponse {
+  totalWords: number;
+  uniqueKeywords: number;
+  keywords: Array<{
+    word: string;
+    frequency: number;
+    density: number;
+    status: "low" | "good" | "optimal" | "high";
+  }>;
+  avgDensity: number;
+  topKeywordDensity: number;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -7,7 +19,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { content } = keywordDensityRequestSchema.parse(req.body);
+    const { content } = req.body;
+    
+    if (!content || typeof content !== 'string' || content.trim().length < 50) {
+      return res.status(400).json({ message: 'Content must be at least 50 characters' });
+    }
     
     // Clean and split content into words
     const words = content

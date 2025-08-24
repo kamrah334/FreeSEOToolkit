@@ -1,5 +1,9 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { metaDescriptionRequestSchema, type MetaDescriptionResponse } from "../shared/schema";
+
+interface MetaDescriptionResponse {
+  content: string;
+  length: number;
+}
 
 // Helper function to call Hugging Face API
 async function callHuggingFace(prompt: string): Promise<string> {
@@ -65,7 +69,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { title, audience } = metaDescriptionRequestSchema.parse(req.body);
+    const { title, audience } = req.body;
+    
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
     
     let content: string;
     
