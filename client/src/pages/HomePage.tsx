@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { FileText, Type, BarChart3, List, PenTool, FileEdit } from "lucide-react";
+import { FileText, Type, BarChart3, List, PenTool, FileEdit, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
@@ -63,6 +63,16 @@ export default function HomePage() {
       iconBg: "bg-blue-100 group-hover:bg-blue-200",
       iconColor: "text-blue-600",
       href: "/article-writer",
+    },
+    {
+      icon: Search,
+      title: "AI Content Detector",
+      description: "Analyze content to detect AI-generated text and get recommendations for human-like improvements",
+      badge: "Anti-AI • Free",
+      badgeColor: "text-red-600",
+      iconBg: "bg-red-100 group-hover:bg-red-200",
+      iconColor: "text-red-600",
+      href: "/ai-detector",
     },
   ];
 

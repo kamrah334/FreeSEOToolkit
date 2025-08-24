@@ -12,6 +12,7 @@ import KeywordDensityTool from "@/pages/KeywordDensityTool";
 import BlogOutlineTool from "@/pages/BlogOutlineTool";
 import BlogPostWriterTool from "@/pages/BlogPostWriterTool";
 import ArticleWriterTool from "@/pages/ArticleWriterTool";
+import AiDetectorTool from "@/pages/AiDetectorTool";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
 import Contact from "@/pages/Contact";
@@ -30,6 +31,7 @@ function Router() {
           <Route path="/blog-outline" component={BlogOutlineTool} />
           <Route path="/blog-post-writer" component={BlogPostWriterTool} />
           <Route path="/article-writer" component={ArticleWriterTool} />
+          <Route path="/ai-detector" component={AiDetectorTool} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
           <Route path="/contact" component={Contact} />

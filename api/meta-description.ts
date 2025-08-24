@@ -5,62 +5,67 @@ interface MetaDescriptionResponse {
   length: number;
 }
 
-// Helper function to call Hugging Face API
-async function callHuggingFace(prompt: string): Promise<string> {
-  const HUGGING_FACE_API_KEY = process.env.HUGGING_FACE_API_KEY || process.env.HF_API_KEY || "";
+// Professional meta description generator
+function generateMetaDescription(title: string, audience?: string, keywords?: string): string {
+  const cleanTitle = title.trim();
+  const keywordList = keywords ? keywords.split(',').map(k => k.trim()) : [];
+  const mainKeyword = keywordList[0] || extractMainKeyword(cleanTitle);
   
-  if (!HUGGING_FACE_API_KEY) {
-    throw new Error("Hugging Face API key not configured");
-  }
-
-  const models = [
-    "microsoft/DialoGPT-medium",
-    "gpt2",
-    "distilgpt2"
-  ];
-
-  let lastError: Error | null = null;
-
-  for (const model of models) {
-    try {
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              max_new_tokens: 100,
-              temperature: 0.7,
-              do_sample: true,
-            },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        const generated = result[0]?.generated_text || result.generated_text || "";
-        const cleanedText = generated.replace(prompt, "").trim();
-        return cleanedText || generated;
-      } else {
-        const errorText = await response.text();
-        lastError = new Error(`Model ${model}: ${response.status} ${errorText}`);
-        console.warn(`Failed with model ${model}:`, lastError.message);
-        continue;
-      }
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`Error with model ${model}:`, error);
-      continue;
+  const templates = [
+    {
+      pattern: `Discover ${mainKeyword} with our comprehensive guide. Learn proven strategies, expert tips, and practical insights for better results.`,
+      variation: `Master ${mainKeyword} using our step-by-step approach. Get actionable advice from industry experts and transform your results today.`
+    },
+    {
+      pattern: `Everything you need to know about ${cleanTitle.toLowerCase()}. Expert insights, practical tips, and proven strategies that work.`,
+      variation: `Complete guide to ${cleanTitle.toLowerCase()}. Learn from real examples, avoid common mistakes, and get measurable results.`
+    },
+    {
+      pattern: `${cleanTitle} made simple. Get practical advice, proven techniques, and expert insights to achieve your goals faster.`,
+      variation: `Unlock the secrets of ${cleanTitle.toLowerCase()}. Professional strategies, real-world examples, and actionable steps included.`
     }
+  ];
+  
+  // Add audience-specific elements
+  const audienceModifiers = {
+    'beginners': 'Perfect for newcomers and those just getting started.',
+    'advanced': 'Advanced strategies for experienced professionals.',
+    'business-owners': 'Tailored specifically for business leaders and entrepreneurs.',
+    'marketers': 'Essential insights for marketing professionals.',
+    'developers': 'Technical guidance for developers and engineers.',
+    'students': 'Easy-to-follow guide designed for learners.'
+  };
+  
+  const template = templates[Math.floor(Math.random() * templates.length)];
+  const useVariation = Math.random() > 0.5;
+  let description = useVariation ? template.variation : template.pattern;
+  
+  // Add audience modifier if specified
+  if (audience && audienceModifiers[audience as keyof typeof audienceModifiers]) {
+    description += ` ${audienceModifiers[audience as keyof typeof audienceModifiers]}`;
   }
+  
+  // Add human touches
+  const humanTouches = [
+    'Read now and see the difference!',
+    'Start your journey today.',
+    'Join thousands who\'ve already benefited.',
+    'See real results fast.',
+    'Transform your approach today.',
+    'Get started in minutes.'
+  ];
+  
+  if (description.length < 140) {
+    description += ` ${humanTouches[Math.floor(Math.random() * humanTouches.length)]}`;
+  }
+  
+  return description;
+}
 
-  throw lastError || new Error("All models failed to generate content");
+function extractMainKeyword(title: string): string {
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'how', 'what', 'where', 'when', 'why']);
+  const words = title.toLowerCase().split(/\s+/).filter(word => !stopWords.has(word) && word.length > 2);
+  return words[0] || 'topic';
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -75,23 +80,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ message: 'Title is required' });
     }
     
-    let content: string;
+    const { keywords: keywordInput } = req.body;
     
-    try {
-      const audienceText = audience ? ` for ${audience}` : "";
-      const prompt = `Write a compelling SEO meta description (150-160 characters) for this blog post title: "${title}"${audienceText}. Make it engaging and include relevant keywords.`;
-      
-      const aiResponse = await callHuggingFace(prompt);
-      content = aiResponse.trim();
-    } catch (aiError) {
-      console.warn("AI generation failed, using template fallback:", aiError);
-      
-      // Template-based fallback
-      const audienceText = audience ? ` for ${audience}` : "";
-      const keywords = title.toLowerCase().split(/\s+/).slice(0, 3).join(", ");
-      
-      content = `Discover ${title.toLowerCase()}${audienceText}. Learn about ${keywords} and get actionable insights. Read our comprehensive guide now.`;
-    }
+    // Generate professional meta description
+    const content = generateMetaDescription(title, audience, keywordInput);
     
     // Ensure content is within SEO limits
     const finalContent = content.length > 160 ? content.substring(0, 157) + "..." : content;

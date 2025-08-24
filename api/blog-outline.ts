@@ -11,62 +11,99 @@ interface BlogOutlineResponse {
   estimatedReadingTime: number;
 }
 
-// Helper function to call Hugging Face API
-async function callHuggingFace(prompt: string): Promise<string> {
-  const HUGGING_FACE_API_KEY = process.env.HUGGING_FACE_API_KEY || process.env.HF_API_KEY || "";
+// Professional blog outline generator
+function generateBlogOutline(topic: string, audience?: string, length: string = 'medium') {
+  const cleanTopic = topic.trim();
+  const mainKeywords = extractKeywords(cleanTopic);
+  const primaryKeyword = mainKeywords[0] || 'topic';
   
-  if (!HUGGING_FACE_API_KEY) {
-    throw new Error("Hugging Face API key not configured");
+  // Different outline structures based on topic type
+  const outlineTemplates = {
+    howTo: [
+      { heading: "Introduction", level: 2, subsections: [`What is ${cleanTopic}?`, "Why it matters", "What you'll achieve"] },
+      { heading: "Getting Started", level: 2, subsections: ["Prerequisites", "Tools you'll need", "Setting expectations"] },
+      { heading: "Step-by-Step Process", level: 2, subsections: ["Phase 1: Foundation", "Phase 2: Implementation", "Phase 3: Optimization"] },
+      { heading: "Best Practices", level: 2, subsections: ["Pro tips from experts", "Common mistakes to avoid", "Time-saving shortcuts"] },
+      { heading: "Advanced Strategies", level: 2, subsections: ["Next-level techniques", "Scaling your efforts", "Measuring success"] },
+      { heading: "Troubleshooting", level: 2, subsections: ["Common issues", "Quick fixes", "When to seek help"] },
+      { heading: "Conclusion", level: 2, subsections: ["Key takeaways", "Your next steps", "Additional resources"] }
+    ],
+    guide: [
+      { heading: "Introduction", level: 2, subsections: [`Understanding ${primaryKeyword}`, "Why this guide exists", "Who this is for"] },
+      { heading: "The Fundamentals", level: 2, subsections: ["Core concepts explained", "Essential terminology", "Building your foundation"] },
+      { heading: "Practical Application", level: 2, subsections: ["Real-world examples", "Case studies", "Hands-on exercises"] },
+      { heading: "Advanced Concepts", level: 2, subsections: ["Complex scenarios", "Expert-level insights", "Industry secrets"] },
+      { heading: "Implementation Strategy", level: 2, subsections: ["Planning your approach", "Timeline and milestones", "Resource allocation"] },
+      { heading: "Measuring Results", level: 2, subsections: ["Key metrics to track", "Analysis techniques", "Continuous improvement"] },
+      { heading: "Conclusion", level: 2, subsections: ["Putting it all together", "Long-term strategy", "Where to go next"] }
+    ],
+    comparison: [
+      { heading: "Introduction", level: 2, subsections: ["Setting the stage", "What we're comparing", "Why it matters"] },
+      { heading: "Overview of Options", level: 2, subsections: ["Option A breakdown", "Option B breakdown", "Key differences"] },
+      { heading: "Detailed Analysis", level: 2, subsections: ["Performance comparison", "Cost analysis", "User experience"] },
+      { heading: "Pros and Cons", level: 2, subsections: ["Advantages of each", "Potential drawbacks", "Deal-breakers to consider"] },
+      { heading: "Use Cases", level: 2, subsections: ["When to choose A", "When to choose B", "Hybrid approaches"] },
+      { heading: "Final Recommendation", level: 2, subsections: ["Our verdict", "Decision framework", "Making your choice"] }
+    ]
+  };
+  
+  // Determine outline type based on topic keywords
+  let selectedTemplate = outlineTemplates.guide; // default
+  
+  if (cleanTopic.toLowerCase().includes('how to') || cleanTopic.toLowerCase().includes('step by step')) {
+    selectedTemplate = outlineTemplates.howTo;
+  } else if (cleanTopic.toLowerCase().includes('vs') || cleanTopic.toLowerCase().includes('versus') || cleanTopic.toLowerCase().includes('comparison')) {
+    selectedTemplate = outlineTemplates.comparison;
   }
+  
+  // Adjust length
+  let sections = [...selectedTemplate];
+  if (length === 'short') {
+    sections = sections.slice(0, 4);
+  } else if (length === 'long') {
+    // Add more detailed subsections for long content
+    sections = sections.map(section => ({
+      ...section,
+      subsections: [...section.subsections, `Additional insights on ${section.heading.toLowerCase()}`]
+    }));
+  }
+  
+  // Customize based on audience
+  if (audience) {
+    sections = customizeForAudience(sections, audience, cleanTopic);
+  }
+  
+  return sections;
+}
 
-  const models = [
-    "microsoft/DialoGPT-medium",
-    "gpt2",
-    "distilgpt2"
-  ];
+function extractKeywords(topic: string): string[] {
+  const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'how', 'what', 'where', 'when', 'why', 'complete', 'guide', 'ultimate']);
+  return topic.toLowerCase().split(/\s+/).filter(word => !stopWords.has(word) && word.length > 2);
+}
 
-  let lastError: Error | null = null;
-
-  for (const model of models) {
-    try {
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              max_new_tokens: 100,
-              temperature: 0.7,
-              do_sample: true,
-            },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        const generated = result[0]?.generated_text || result.generated_text || "";
-        const cleanedText = generated.replace(prompt, "").trim();
-        return cleanedText || generated;
-      } else {
-        const errorText = await response.text();
-        lastError = new Error(`Model ${model}: ${response.status} ${errorText}`);
-        console.warn(`Failed with model ${model}:`, lastError.message);
-        continue;
-      }
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`Error with model ${model}:`, error);
-      continue;
+function customizeForAudience(sections: any[], audience: string, topic: string) {
+  const audienceAdjustments = {
+    'beginners': {
+      addSections: [{ heading: "Getting Started - A Beginner's Perspective", level: 2, subsections: ["Basic concepts explained simply", "What you need to know first", "Building confidence"] }],
+      modifyIntro: "New to this? Don't worry - we'll start from the very beginning."
+    },
+    'business-owners': {
+      addSections: [{ heading: "Business Impact and ROI", level: 2, subsections: ["Cost-benefit analysis", "Revenue implications", "Resource requirements"] }],
+      modifyIntro: "How this affects your bottom line and business growth."
+    },
+    'marketers': {
+      addSections: [{ heading: "Marketing Applications", level: 2, subsections: ["Campaign integration", "Audience targeting", "Performance tracking"] }],
+      modifyIntro: "Leveraging this for better marketing outcomes."
     }
+  };
+  
+  const adjustments = audienceAdjustments[audience as keyof typeof audienceAdjustments];
+  if (adjustments) {
+    // Insert audience-specific section after introduction
+    sections.splice(1, 0, ...adjustments.addSections);
   }
-
-  throw lastError || new Error("All models failed to generate content");
+  
+  return sections;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -83,90 +120,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     
     const validatedLength = length && ['short', 'medium', 'long'].includes(length) ? length : 'medium';
     
-    let sections: any[] = [];
-    
-    try {
-      const audienceText = audience ? ` for ${audience}` : "";
-      const lengthText = validatedLength === "short" ? "5-7 sections" : 
-                       validatedLength === "medium" ? "7-10 sections" : "10-15 sections";
-      
-      const prompt = `Create a detailed blog outline for: "${topic}"${audienceText}. Include ${lengthText} with H1, H2, and H3 headings. Structure it as a comprehensive guide with introduction and conclusion.`;
-      
-      const aiResponse = await callHuggingFace(prompt);
-      
-      // Parse the AI response into structured sections
-      const lines = aiResponse.split('\n').filter(line => line.trim());
-      let currentSection: any = null;
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.match(/^\d+\./)) {
-          // Main section (H2)
-          if (currentSection) sections.push(currentSection);
-          currentSection = {
-            heading: trimmed.replace(/^\d+\.\s*/, ''),
-            level: 2,
-            subsections: []
-          };
-        } else if (trimmed.startsWith('-') && currentSection) {
-          // Subsection (H3)
-          currentSection.subsections.push(trimmed.replace(/^-\s*/, ''));
-        }
-      }
-      
-      if (currentSection) sections.push(currentSection);
-    } catch (aiError) {
-      console.warn("AI outline generation failed, using template fallback:", aiError);
-      sections = []; // Reset sections to use template fallback
-    }
-
-    // Fallback if AI response failed or is not well structured
-    if (sections.length === 0) {
-      const topicWords = topic.split(' ');
-      const mainKeyword = topicWords[0];
-      
-      const baseOutline = [
-        { 
-          heading: "Introduction", 
-          level: 2, 
-          subsections: [`What is ${topic}?`, "Why this matters", "What you'll learn"] 
-        },
-        { 
-          heading: `Understanding ${mainKeyword}`, 
-          level: 2, 
-          subsections: ["Key concepts", "Important terminology", "Common misconceptions"] 
-        },
-        { 
-          heading: `Getting Started with ${topic}`, 
-          level: 2, 
-          subsections: ["Prerequisites", "Step-by-step approach", "Tools and resources"] 
-        },
-        { 
-          heading: "Best Practices", 
-          level: 2, 
-          subsections: ["Proven strategies", "Expert tips", "Common mistakes to avoid"] 
-        },
-        { 
-          heading: "Advanced Techniques", 
-          level: 2, 
-          subsections: ["Pro-level strategies", "Optimization tips", "Measuring success"] 
-        },
-        { 
-          heading: "Conclusion", 
-          level: 2, 
-          subsections: ["Key takeaways", "Next steps", "Additional resources"] 
-        }
-      ];
-      
-      // Adjust outline based on length
-      if (validatedLength === "short") {
-        sections = baseOutline.slice(0, 4);
-      } else if (validatedLength === "medium") {
-        sections = baseOutline.slice(0, 5);
-      } else {
-        sections = baseOutline;
-      }
-    }
+    // Generate professional blog outline
+    const sections = generateBlogOutline(topic, audience, validatedLength);
 
     const estimatedWordCount = validatedLength === "short" ? 1200 : 
                               validatedLength === "medium" ? 2500 : 4000;
