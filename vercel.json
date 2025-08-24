@@ -2,23 +2,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/meta-description.ts": {
-      "runtime": "nodejs20.x"
-    },
-    "api/title-case.ts": {
-      "runtime": "nodejs20.x"
-    },
-    "api/keyword-density.ts": {
-      "runtime": "nodejs20.x"
-    },
-    "api/blog-outline.ts": {
-      "runtime": "nodejs20.x"
-    },
-    "api/blog-post.ts": {
-      "runtime": "nodejs20.x"
-    },
-    "api/article.ts": {
-      "runtime": "nodejs20.x"
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3.0.7"
     }
   },
   "rewrites": [
