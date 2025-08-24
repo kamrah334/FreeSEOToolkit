@@ -6,10 +6,10 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist"
+        "distDir": "client/dist"
       }
     }
   ],
@@ -28,7 +28,7 @@
       "runtime": "nodejs18.x"
     }
   },
-  "env": {
-    "HUGGING_FACE_API_KEY": "@hugging_face_api_key"
-  }
+  "buildCommand": "cd client && npm install && npm run build",
+  "outputDirectory": "client/dist",
+  "framework": null
 }
