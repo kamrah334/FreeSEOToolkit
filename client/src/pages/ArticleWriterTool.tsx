@@ -33,7 +33,17 @@ export default function ArticleWriterTool() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: ArticleRequest) => {
-      const response = await apiRequest("POST", "/api/article", data);
+      // Transform data to match API expectations
+      const apiData = {
+        topic: data.topic,
+        style: data.style,
+        targetWords: data.length === 'short' ? 600 : data.length === 'medium' ? 1200 : 2000,
+        audience: data.audience || 'general',
+        includeIntro: data.includeIntro,
+        includeConclusion: data.includeConclusion,
+        keywords: data.targetKeywords
+      };
+      const response = await apiRequest("POST", "/api/article", apiData);
       return response.json();
     },
     onSuccess: (data: ArticleResponse) => {

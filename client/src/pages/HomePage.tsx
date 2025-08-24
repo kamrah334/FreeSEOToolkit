@@ -82,6 +82,12 @@ export default function HomePage() {
               size="lg" 
               className="bg-primary-600 hover:bg-primary-700 text-white"
               data-testid="button-get-started"
+              onClick={() => {
+                const toolsSection = document.querySelector('#tools-section');
+                if (toolsSection) {
+                  toolsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
             >
               Get Started Free
             </Button>
@@ -89,6 +95,12 @@ export default function HomePage() {
               variant="outline" 
               size="lg"
               data-testid="button-view-tools"
+              onClick={() => {
+                const toolsSection = document.querySelector('#tools-section');
+                if (toolsSection) {
+                  toolsSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
             >
               View Tools
             </Button>
@@ -97,7 +109,7 @@ export default function HomePage() {
       </div>
 
       {/* Tools Grid */}
-      <div className="py-16 bg-white">
+      <div id="tools-section" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose Your SEO Tool</h2>

@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Footer() {
   return (
@@ -13,15 +14,15 @@ export default function Footer() {
             Built with ❤️ on Replit
           </p>
           <div className="flex justify-center space-x-6 text-sm text-gray-500">
-            <a href="#" className="hover:text-gray-900" data-testid="link-privacy">
+            <Link href="/privacy-policy" className="hover:text-gray-900" data-testid="link-privacy">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-gray-900" data-testid="link-terms">
+            </Link>
+            <Link href="/terms-of-service" className="hover:text-gray-900" data-testid="link-terms">
               Terms of Service
-            </a>
-            <a href="#" className="hover:text-gray-900" data-testid="link-contact">
+            </Link>
+            <Link href="/contact" className="hover:text-gray-900" data-testid="link-contact">
               Contact
-            </a>
+            </Link>
           </div>
         </div>
       </div>

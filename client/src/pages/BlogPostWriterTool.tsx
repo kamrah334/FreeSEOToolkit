@@ -31,7 +31,16 @@ export default function BlogPostWriterTool() {
 
   const generateMutation = useMutation({
     mutationFn: async (data: BlogPostRequest) => {
-      const response = await apiRequest("POST", "/api/blog-post", data);
+      // Transform data to match API expectations
+      const apiData = {
+        title: data.title,
+        keywords: data.targetKeywords,
+        tone: data.tone,
+        targetWords: data.length === 'short' ? 800 : data.length === 'medium' ? 1500 : 2500,
+        includeIntro: true,
+        includeConclusion: true
+      };
+      const response = await apiRequest("POST", "/api/blog-post", apiData);
       return response.json();
     },
     onSuccess: (data: BlogPostResponse) => {
