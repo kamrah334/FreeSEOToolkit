@@ -21,30 +21,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/google/flan-t5-small",
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              max_new_tokens: 100,
-              temperature: 0.7,
-            },
-          }),
-        }
-      );
+      // Try microsoft/DialoGPT-medium first, fallback to gpt2 if needed
+      const models = [
+        "microsoft/DialoGPT-medium",
+        "gpt2",
+        "distilgpt2"
+      ];
 
-      if (!response.ok) {
-        throw new Error(`Hugging Face API error: ${response.statusText}`);
+      let lastError: Error | null = null;
+
+      for (const model of models) {
+        try {
+          const response = await fetch(
+            `https://api-inference.huggingface.co/models/${model}`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                inputs: prompt,
+                parameters: {
+                  max_new_tokens: 100,
+                  temperature: 0.7,
+                  do_sample: true,
+                },
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            const generated = result[0]?.generated_text || result.generated_text || "";
+            
+            // Clean up the response by removing the original prompt if it's included
+            const cleanedText = generated.replace(prompt, "").trim();
+            return cleanedText || generated;
+          } else {
+            const errorText = await response.text();
+            lastError = new Error(`Model ${model}: ${response.status} ${errorText}`);
+            console.warn(`Failed with model ${model}:`, lastError.message);
+            continue;
+          }
+        } catch (error) {
+          lastError = error as Error;
+          console.warn(`Error with model ${model}:`, error);
+          continue;
+        }
       }
 
-      const result = await response.json();
-      return result[0]?.generated_text || result.generated_text || "";
+      // If all models fail, provide a fallback response
+      throw lastError || new Error("All models failed to generate content");
     } catch (error) {
       console.error("Hugging Face API error:", error);
       throw new Error("Failed to generate AI content");
@@ -56,15 +84,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { title, audience } = metaDescriptionRequestSchema.parse(req.body);
       
-      const audienceText = audience ? ` for ${audience}` : "";
-      const prompt = `Write a compelling SEO meta description (150-160 characters) for this blog post title: "${title}"${audienceText}. Make it engaging and include relevant keywords.`;
+      let content: string;
       
-      const aiResponse = await callHuggingFace(prompt);
-      const content = aiResponse.trim();
+      try {
+        const audienceText = audience ? ` for ${audience}` : "";
+        const prompt = `Write a compelling SEO meta description (150-160 characters) for this blog post title: "${title}"${audienceText}. Make it engaging and include relevant keywords.`;
+        
+        const aiResponse = await callHuggingFace(prompt);
+        content = aiResponse.trim();
+      } catch (aiError) {
+        console.warn("AI generation failed, using template fallback:", aiError);
+        
+        // Template-based fallback
+        const audienceText = audience ? ` for ${audience}` : "";
+        const keywords = title.toLowerCase().split(/\s+/).slice(0, 3).join(", ");
+        
+        content = `Discover ${title.toLowerCase()}${audienceText}. Learn about ${keywords} and get actionable insights. Read our comprehensive guide now.`;
+      }
+      
+      // Ensure content is within SEO limits
+      const finalContent = content.length > 160 ? content.substring(0, 157) + "..." : content;
       
       const response: MetaDescriptionResponse = {
-        content: content.length > 160 ? content.substring(0, 160) : content,
-        length: Math.min(content.length, 160),
+        content: finalContent,
+        length: finalContent.length,
       };
 
       res.json(response);
@@ -187,44 +230,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { topic, audience, length } = blogOutlineRequestSchema.parse(req.body);
       
-      const audienceText = audience ? ` for ${audience}` : "";
-      const lengthText = length === "short" ? "5-7 sections" : 
-                       length === "medium" ? "7-10 sections" : "10-15 sections";
+      let sections: any[] = [];
       
-      const prompt = `Create a detailed blog outline for: "${topic}"${audienceText}. Include ${lengthText} with H1, H2, and H3 headings. Structure it as a comprehensive guide with introduction and conclusion.`;
-      
-      const aiResponse = await callHuggingFace(prompt);
-      
-      // Parse the AI response into structured sections
-      const lines = aiResponse.split('\n').filter(line => line.trim());
-      const sections = [];
-      let currentSection: any = null;
+      try {
+        const audienceText = audience ? ` for ${audience}` : "";
+        const lengthText = length === "short" ? "5-7 sections" : 
+                         length === "medium" ? "7-10 sections" : "10-15 sections";
+        
+        const prompt = `Create a detailed blog outline for: "${topic}"${audienceText}. Include ${lengthText} with H1, H2, and H3 headings. Structure it as a comprehensive guide with introduction and conclusion.`;
+        
+        const aiResponse = await callHuggingFace(prompt);
+        
+        // Parse the AI response into structured sections
+        const lines = aiResponse.split('\n').filter(line => line.trim());
+        let currentSection: any = null;
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.match(/^\d+\./)) {
-          // Main section (H2)
-          if (currentSection) sections.push(currentSection);
-          currentSection = {
-            heading: trimmed.replace(/^\d+\.\s*/, ''),
-            level: 2,
-            subsections: []
-          };
-        } else if (trimmed.startsWith('-') && currentSection) {
-          // Subsection (H3)
-          currentSection.subsections.push(trimmed.replace(/^-\s*/, ''));
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.match(/^\d+\./)) {
+            // Main section (H2)
+            if (currentSection) sections.push(currentSection);
+            currentSection = {
+              heading: trimmed.replace(/^\d+\.\s*/, ''),
+              level: 2,
+              subsections: []
+            };
+          } else if (trimmed.startsWith('-') && currentSection) {
+            // Subsection (H3)
+            currentSection.subsections.push(trimmed.replace(/^-\s*/, ''));
+          }
         }
+        
+        if (currentSection) sections.push(currentSection);
+      } catch (aiError) {
+        console.warn("AI outline generation failed, using template fallback:", aiError);
+        sections = []; // Reset sections to use template fallback
       }
-      
-      if (currentSection) sections.push(currentSection);
 
-      // Fallback if AI response is not well structured
+      // Fallback if AI response failed or is not well structured
       if (sections.length === 0) {
-        sections.push(
-          { heading: "Introduction", level: 2, subsections: [`Why ${topic} matters`, "What you'll learn"] },
-          { heading: "Main Content", level: 2, subsections: ["Key concepts", "Best practices", "Common mistakes"] },
-          { heading: "Conclusion", level: 2, subsections: ["Key takeaways", "Next steps"] }
-        );
+        const topicWords = topic.split(' ');
+        const mainKeyword = topicWords[0];
+        
+        const baseOutline = [
+          { 
+            heading: "Introduction", 
+            level: 2, 
+            subsections: [`What is ${topic}?`, "Why this matters", "What you'll learn"] 
+          },
+          { 
+            heading: `Understanding ${mainKeyword}`, 
+            level: 2, 
+            subsections: ["Key concepts", "Important terminology", "Common misconceptions"] 
+          },
+          { 
+            heading: `Getting Started with ${topic}`, 
+            level: 2, 
+            subsections: ["Prerequisites", "Step-by-step approach", "Tools and resources"] 
+          },
+          { 
+            heading: "Best Practices", 
+            level: 2, 
+            subsections: ["Proven strategies", "Expert tips", "Common mistakes to avoid"] 
+          },
+          { 
+            heading: "Advanced Techniques", 
+            level: 2, 
+            subsections: ["Pro-level strategies", "Optimization tips", "Measuring success"] 
+          },
+          { 
+            heading: "Conclusion", 
+            level: 2, 
+            subsections: ["Key takeaways", "Next steps", "Additional resources"] 
+          }
+        ];
+        
+        // Adjust outline based on length
+        if (length === "short") {
+          sections = baseOutline.slice(0, 4);
+        } else if (length === "medium") {
+          sections = baseOutline.slice(0, 5);
+        } else {
+          sections = baseOutline;
+        }
       }
 
       const estimatedWordCount = length === "short" ? 1200 : 
