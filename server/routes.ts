@@ -18,93 +18,79 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   const HUGGING_FACE_API_KEY = process.env.HUGGING_FACE_API_KEY || process.env.HF_API_KEY || "";
 
-  // Helper function to call Hugging Face API
-  async function callHuggingFace(prompt: string): Promise<string> {
-    if (!HUGGING_FACE_API_KEY) {
-      throw new Error("Hugging Face API key not configured");
+  // Professional content generation functions
+  function generateProfessionalOutline(topic: string, audience?: string, length: string = 'medium') {
+    const cleanTopic = topic.trim();
+    const mainKeywords = extractKeywords(cleanTopic);
+    const primaryKeyword = mainKeywords[0] || 'topic';
+    
+    const outlineTemplates = {
+      howTo: [
+        { heading: "Introduction", level: 2, subsections: [`What is ${cleanTopic}?`, "Why it matters", "What you'll achieve"] },
+        { heading: "Getting Started", level: 2, subsections: ["Prerequisites", "Tools you'll need", "Setting expectations"] },
+        { heading: "Step-by-Step Process", level: 2, subsections: ["Phase 1: Foundation", "Phase 2: Implementation", "Phase 3: Optimization"] },
+        { heading: "Best Practices", level: 2, subsections: ["Pro tips from experts", "Common mistakes to avoid", "Time-saving shortcuts"] },
+        { heading: "Advanced Strategies", level: 2, subsections: ["Next-level techniques", "Scaling your efforts", "Measuring success"] },
+        { heading: "Troubleshooting", level: 2, subsections: ["Common issues", "Quick fixes", "When to seek help"] },
+        { heading: "Conclusion", level: 2, subsections: ["Key takeaways", "Your next steps", "Additional resources"] }
+      ],
+      guide: [
+        { heading: "Introduction", level: 2, subsections: [`Understanding ${primaryKeyword}`, "Why this guide exists", "Who this is for"] },
+        { heading: "The Fundamentals", level: 2, subsections: ["Core concepts explained", "Essential terminology", "Building your foundation"] },
+        { heading: "Practical Application", level: 2, subsections: ["Real-world examples", "Case studies", "Hands-on exercises"] },
+        { heading: "Advanced Concepts", level: 2, subsections: ["Complex scenarios", "Expert-level insights", "Industry secrets"] },
+        { heading: "Implementation Strategy", level: 2, subsections: ["Planning your approach", "Timeline and milestones", "Resource allocation"] },
+        { heading: "Measuring Results", level: 2, subsections: ["Key metrics to track", "Analysis techniques", "Continuous improvement"] },
+        { heading: "Conclusion", level: 2, subsections: ["Putting it all together", "Long-term strategy", "Where to go next"] }
+      ]
+    };
+    
+    let selectedTemplate = outlineTemplates.guide;
+    if (cleanTopic.toLowerCase().includes('how to') || cleanTopic.toLowerCase().includes('step by step')) {
+      selectedTemplate = outlineTemplates.howTo;
     }
-
-    try {
-      // Try microsoft/DialoGPT-medium first, fallback to gpt2 if needed
-      const models = [
-        "microsoft/DialoGPT-medium",
-        "gpt2",
-        "distilgpt2"
-      ];
-
-      let lastError: Error | null = null;
-
-      for (const model of models) {
-        try {
-          const response = await fetch(
-            `https://api-inference.huggingface.co/models/${model}`,
-            {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                inputs: prompt,
-                parameters: {
-                  max_new_tokens: 100,
-                  temperature: 0.7,
-                  do_sample: true,
-                },
-              }),
-            }
-          );
-
-          if (response.ok) {
-            const result = await response.json();
-            const generated = result[0]?.generated_text || result.generated_text || "";
-            
-            // Clean up the response by removing the original prompt if it's included
-            const cleanedText = generated.replace(prompt, "").trim();
-            return cleanedText || generated;
-          } else {
-            const errorText = await response.text();
-            lastError = new Error(`Model ${model}: ${response.status} ${errorText}`);
-            console.warn(`Failed with model ${model}:`, lastError.message);
-            continue;
-          }
-        } catch (error) {
-          lastError = error as Error;
-          console.warn(`Error with model ${model}:`, error);
-          continue;
-        }
-      }
-
-      // If all models fail, provide a fallback response
-      throw lastError || new Error("All models failed to generate content");
-    } catch (error) {
-      console.error("Hugging Face API error:", error);
-      throw new Error("Failed to generate AI content");
+    
+    let sections = [...selectedTemplate];
+    if (length === 'short') {
+      sections = sections.slice(0, 4);
+    } else if (length === 'long') {
+      sections = sections.map(section => ({
+        ...section,
+        subsections: [...section.subsections, `Advanced insights on ${section.heading.toLowerCase()}`]
+      }));
     }
+    
+    return sections;
+  }
+
+  function extractKeywords(topic: string): string[] {
+    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'how', 'what', 'where', 'when', 'why', 'complete', 'guide', 'ultimate']);
+    return topic.toLowerCase().split(/\s+/).filter(word => !stopWords.has(word) && word.length > 2);
+  }
+
+  function generateProfessionalMetaDescription(title: string, keywords?: string): string {
+    const cleanTitle = title.trim();
+    const keywordList = keywords ? keywords.split(',').map(k => k.trim()) : [];
+    const mainKeyword = keywordList[0] || extractKeywords(cleanTitle)[0] || 'topic';
+    
+    const templates = [
+      `Discover ${mainKeyword} with our comprehensive guide. Learn proven strategies, expert tips, and practical insights for better results.`,
+      `Everything you need to know about ${cleanTitle.toLowerCase()}. Expert insights, practical tips, and proven strategies that work.`,
+      `${cleanTitle} made simple. Get practical advice, proven techniques, and expert insights to achieve your goals faster.`
+    ];
+    
+    const description = templates[Math.floor(Math.random() * templates.length)];
+    return description.length > 160 ? description.substring(0, 157) + "..." : description;
   }
 
   // Meta Description Generator
   app.post("/api/meta-description", async (req, res) => {
     try {
       const { title, audience } = metaDescriptionRequestSchema.parse(req.body);
+      const { keywords } = req.body;
       
-      let content: string;
-      
-      try {
-        const audienceText = audience ? ` for ${audience}` : "";
-        const prompt = `Write a compelling SEO meta description (150-160 characters) for this blog post title: "${title}"${audienceText}. Make it engaging and include relevant keywords.`;
-        
-        const aiResponse = await callHuggingFace(prompt);
-        content = aiResponse.trim();
-      } catch (aiError) {
-        console.warn("AI generation failed, using template fallback:", aiError);
-        
-        // Template-based fallback
-        const audienceText = audience ? ` for ${audience}` : "";
-        const keywords = title.toLowerCase().split(/\s+/).slice(0, 3).join(", ");
-        
-        content = `Discover ${title.toLowerCase()}${audienceText}. Learn about ${keywords} and get actionable insights. Read our comprehensive guide now.`;
-      }
+      // Generate professional meta description
+      const content = generateProfessionalMetaDescription(title, keywords);
       
       // Ensure content is within SEO limits
       const finalContent = content.length > 160 ? content.substring(0, 157) + "..." : content;
@@ -234,90 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { topic, audience, length } = blogOutlineRequestSchema.parse(req.body);
       
-      let sections: any[] = [];
-      
-      try {
-        const audienceText = audience ? ` for ${audience}` : "";
-        const lengthText = length === "short" ? "5-7 sections" : 
-                         length === "medium" ? "7-10 sections" : "10-15 sections";
-        
-        const prompt = `Create a detailed blog outline for: "${topic}"${audienceText}. Include ${lengthText} with H1, H2, and H3 headings. Structure it as a comprehensive guide with introduction and conclusion.`;
-        
-        const aiResponse = await callHuggingFace(prompt);
-        
-        // Parse the AI response into structured sections
-        const lines = aiResponse.split('\n').filter(line => line.trim());
-        let currentSection: any = null;
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.match(/^\d+\./)) {
-            // Main section (H2)
-            if (currentSection) sections.push(currentSection);
-            currentSection = {
-              heading: trimmed.replace(/^\d+\.\s*/, ''),
-              level: 2,
-              subsections: []
-            };
-          } else if (trimmed.startsWith('-') && currentSection) {
-            // Subsection (H3)
-            currentSection.subsections.push(trimmed.replace(/^-\s*/, ''));
-          }
-        }
-        
-        if (currentSection) sections.push(currentSection);
-      } catch (aiError) {
-        console.warn("AI outline generation failed, using template fallback:", aiError);
-        sections = []; // Reset sections to use template fallback
-      }
-
-      // Fallback if AI response failed or is not well structured
-      if (sections.length === 0) {
-        const topicWords = topic.split(' ');
-        const mainKeyword = topicWords[0];
-        
-        const baseOutline = [
-          { 
-            heading: "Introduction", 
-            level: 2, 
-            subsections: [`What is ${topic}?`, "Why this matters", "What you'll learn"] 
-          },
-          { 
-            heading: `Understanding ${mainKeyword}`, 
-            level: 2, 
-            subsections: ["Key concepts", "Important terminology", "Common misconceptions"] 
-          },
-          { 
-            heading: `Getting Started with ${topic}`, 
-            level: 2, 
-            subsections: ["Prerequisites", "Step-by-step approach", "Tools and resources"] 
-          },
-          { 
-            heading: "Best Practices", 
-            level: 2, 
-            subsections: ["Proven strategies", "Expert tips", "Common mistakes to avoid"] 
-          },
-          { 
-            heading: "Advanced Techniques", 
-            level: 2, 
-            subsections: ["Pro-level strategies", "Optimization tips", "Measuring success"] 
-          },
-          { 
-            heading: "Conclusion", 
-            level: 2, 
-            subsections: ["Key takeaways", "Next steps", "Additional resources"] 
-          }
-        ];
-        
-        // Adjust outline based on length
-        if (length === "short") {
-          sections = baseOutline.slice(0, 4);
-        } else if (length === "medium") {
-          sections = baseOutline.slice(0, 5);
-        } else {
-          sections = baseOutline;
-        }
-      }
+      // Generate professional blog outline
+      const sections = generateProfessionalOutline(topic, audience, length);
 
       const estimatedWordCount = length === "short" ? 1200 : 
                                 length === "medium" ? 2500 : 4000;

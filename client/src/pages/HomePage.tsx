@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { FileText, Type, BarChart3, List, PenTool, FileEdit, Search } from "lucide-react";
+import { FileText, Type, BarChart3, List, PenTool, FileEdit, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
@@ -73,6 +73,16 @@ export default function HomePage() {
       iconBg: "bg-red-100 group-hover:bg-red-200",
       iconColor: "text-red-600",
       href: "/ai-detector",
+    },
+    {
+      icon: Upload,
+      title: "Blog Publisher",
+      description: "Export SEO-optimized HTML files and get publishing tips for maximum Google ranking",
+      badge: "SEO Export • Free",
+      badgeColor: "text-purple-600",
+      iconBg: "bg-purple-100 group-hover:bg-purple-200",
+      iconColor: "text-purple-600",
+      href: "/blog-publisher",
     },
   ];
 
