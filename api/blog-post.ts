@@ -19,10 +19,15 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     const data = BlogPostSchema.parse(req.body);
     
     const sections = createBlogStructure(data.title, data.tone, data.includeIntro, data.includeConclusion);
-    const content = generateBlogContent(sections, data.title, data.keywords, data.tone, data.targetWords);
+    let content = generateBlogContent(sections, data.title, data.keywords, data.tone, data.targetWords);
+    
+    // Apply human-like enhancements
+    content = addHumanTouches(content);
+    
     const seoScore = calculateSEOScore(content, data.keywords);
     const metaDescription = generateMetaDescription(data.title, data.keywords);
     const suggestedTags = generateSuggestedTags(data.title, data.keywords);
+    const humanSeoTips = generateHumanSeoTips();
     
     const result = {
       title: data.title,
@@ -30,6 +35,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       seoScore,
       metaDescription,
       suggestedTags,
+      seoTips: humanSeoTips,
       wordCount: content.split(' ').length,
       readingTime: Math.ceil(content.split(' ').length / 200),
     };
@@ -94,38 +100,47 @@ function generateBlogContent(structure: any[], title: string, keywords?: string,
 function generateIntroduction(title: string, keywords?: string, tone = 'professional', targetWords = 150): string {
   const keywordText = keywords ? keywords.split(',')[0].trim() : title.split(' ')[0];
   
-  const intros = [
-    `I've been working with ${keywordText} for quite some time now, and I can tell you it's one of those topics that really makes a difference. When I first started exploring ${title.toLowerCase()}, I wasn't sure what to expect.`,
-    `Let me share something with you about ${keywordText}. Over the years, I've noticed that most people either overcomplicate it or don't give it the attention it deserves. The truth is, ${keywordText} can transform your approach if you understand it properly.`,
-    `Have you ever wondered why some people seem to excel at ${keywordText} while others struggle? After working in this field and helping countless individuals, I've identified the key factors that make all the difference.`,
-    `Here's what I wish someone had told me when I was starting with ${keywordText}. It's not as complicated as it might seem, but there are definitely some important things you need to know.`
+  const personalStories = [
+    `You know, I still remember the first time I encountered ${keywordText}. I was sitting in my office at 2 AM (don't ask why – we've all been there), and I suddenly realized I had no idea what I was doing. Sound familiar? That moment changed everything for me.`,
+    `Let me be honest with you – ${keywordText} used to intimidate the heck out of me. I'd see other people talking about it like it was second nature, while I'm over here googling the basics. But here's the thing that nobody tells you...`,
+    `So there I was, three cups of coffee deep, trying to figure out ${keywordText}. My colleague walked by and said something that completely changed my perspective. "Why are you making this so complicated?" she asked. Good question.`,
+    `I'll never forget the day when ${keywordText} finally "clicked" for me. I was actually helping my neighbor with something completely unrelated when the connection hit me. Sometimes the best insights come when you're not even trying, right?`
   ];
-  
-  const followUps = [
-    `\n\nWhat I'm going to share with you in this guide comes from real experience – both my successes and mistakes. I'll walk you through each step, explain why certain approaches work better than others, and give you practical examples you can use right away.`,
-    `\n\nThroughout this article, I'll be sharing insights that come from hands-on experience. These aren't just theoretical concepts – they're strategies that have proven to work time and again. By the time you finish reading, you'll have a solid roadmap to follow.`,
-    `\n\nI believe in keeping things practical and straightforward. That's why everything I'll cover here is based on real-world applications and proven methods. You won't find any fluff or overly complex theories – just actionable advice you can start using today.`
+
+  const personalReflections = [
+    `\n\nLook, I'm not going to pretend I figured this out overnight. I made plenty of mistakes – some embarrassing ones, actually. But those mistakes taught me more than any textbook ever could. And honestly? You're probably going to make some of the same mistakes. That's totally normal.`,
+    `\n\nWhat I'm sharing here isn't from some ivory tower perspective. This comes from real trial and error, late nights fixing problems, and that "aha!" moment when everything suddenly makes sense. I wish someone had laid it out for me this way when I was starting.`,
+    `\n\nHere's what I've learned after stumbling through this myself: ${keywordText} doesn't have to be overwhelming. Yes, there are nuances. Yes, it takes practice. But the fundamental concepts? They're actually pretty straightforward once someone explains them without all the jargon.`,
+    `\n\nI remember feeling completely lost when I started with this stuff. Everyone seemed to know what they were talking about except me. But you know what? Most of them were just better at hiding their confusion. The truth is, we all start somewhere, and there's no shame in being at the beginning.`
   ];
+
+  const randomStory = personalStories[Math.floor(Math.random() * personalStories.length)];
+  const randomReflection = personalReflections[Math.floor(Math.random() * personalReflections.length)];
   
-  return intros[Math.floor(Math.random() * intros.length)] + followUps[Math.floor(Math.random() * followUps.length)];
+  return randomStory + randomReflection;
 }
 
 function generateConclusion(title: string, keywords?: string, tone = 'professional', targetWords = 150): string {
   const keywordText = keywords ? keywords.split(',')[0].trim() : title.split(' ')[0];
   
-  const conclusions = [
-    `Looking back at everything we've covered, ${keywordText} really isn't as intimidating as it might have seemed at first. The key is to start with the basics and build from there. Don't try to implement everything at once – that's a recipe for overwhelm.`,
-    `I hope this guide has given you a clearer picture of how ${keywordText} works and why it matters. From my experience, the people who succeed are those who take consistent action, even if it's just small steps at first.`,
-    `As we wrap this up, remember that becoming proficient with ${keywordText} is a journey, not a destination. I'm still learning new things about it regularly, and that's part of what makes it interesting.`
+  const personalClosings = [
+    `Okay, so we've covered a lot of ground here. Is your head spinning a little? Mine was too when I first started piecing this together. ${keywordText} seemed like this mysterious thing that only "experts" understood. Spoiler alert: we're all just figuring it out as we go.`,
+    `I'll be real with you – when I started writing this, I thought it would be a quick overview. But once I got going, I realized there's so much I wanted to share with you. That's the thing about ${keywordText} – the more you learn, the more you realize how much there is to explore.`,
+    `You made it to the end! Seriously though, I know there's a lot of information here. Don't feel like you need to absorb it all at once. I still go back to reference materials I wrote years ago because, let's face it, nobody remembers everything.`,
+    `So here we are at the end of our little journey together. If you're feeling a bit overwhelmed, that's completely normal. I remember printing out articles like this (yes, I'm that old) and highlighting everything in sight. The key is not to panic about all the details.`
   ];
   
-  const actionCalls = [
-    `\n\nHere's what I'd suggest as your next steps: pick one or two strategies from what we've discussed and focus on those first. Once you're comfortable with them, you can gradually add more techniques to your toolkit. And don't be afraid to experiment – some of my best discoveries came from trying things that weren't in any textbook.`,
-    `\n\nIf you take away just one thing from this article, let it be this: consistency beats perfection every time. It's better to apply these concepts imperfectly on a regular basis than to wait for the perfect moment that never comes. Start where you are, use what you have, and do what you can.`,
-    `\n\nI'd love to hear about your experiences as you start implementing these ideas. Everyone's situation is different, and what works perfectly for one person might need tweaking for another. That's normal and expected – the important thing is to get started.`
+  const encouragingAdvice = [
+    `\n\nHere's my honest advice: pick one thing. Just one. Something that resonated with you while reading this. Try it out for a week. Don't worry about being perfect – I certainly wasn't when I started. The goal is progress, not perfection. And hey, if it doesn't work out exactly as planned, that's data too.`,
+    `\n\nLook, I could give you the standard "take action now" advice, but we both know that's easier said than done. Instead, I'll tell you what I tell my friends: start small, be patient with yourself, and don't compare your beginning to someone else's middle. We all move at our own pace.`,
+    `\n\nI'm curious to know how this goes for you. Seriously. Every person I've shared these ideas with has had a slightly different experience, and I learn something new each time. Don't be a stranger if you have questions or want to share your results – the good, the bad, and the "what the heck just happened."`,
+    `\n\nRemember, this isn't a race. I'm still learning new things about ${keywordText} all the time, and I've been at this for years. The fact that you made it through this entire article tells me you're serious about improving, and that's honestly the most important part. The rest is just practice.`
   ];
   
-  return conclusions[Math.floor(Math.random() * conclusions.length)] + actionCalls[Math.floor(Math.random() * actionCalls.length)];
+  const randomClosing = personalClosings[Math.floor(Math.random() * personalClosings.length)];
+  const randomAdvice = encouragingAdvice[Math.floor(Math.random() * encouragingAdvice.length)];
+  
+  return randomClosing + randomAdvice;
 }
 
 function generateSectionContent(heading: string, keywords?: string, tone = 'professional', targetWords = 200): string {
@@ -140,6 +155,68 @@ function generateSectionContent(heading: string, keywords?: string, tone = 'prof
   ];
   
   return templates[Math.floor(Math.random() * templates.length)];
+}
+
+// Anti-AI detection enhancements
+function addHumanTouches(content: string): string {
+  const imperfections = [
+    { original: /However,/g, replacement: Math.random() > 0.5 ? 'However,' : 'But,' },
+    { original: /Additionally,/g, replacement: Math.random() > 0.5 ? 'Also,' : 'Plus,' },
+    { original: /Furthermore,/g, replacement: Math.random() > 0.5 ? 'What\'s more,' : 'On top of that,' },
+  ];
+
+  let humanizedContent = content;
+  
+  // Add conversational elements
+  const conversationalInserts = [
+    'You know what I mean?',
+    'Make sense?',
+    '(Trust me on this one)',
+    'Here\'s the kicker:',
+    'Plot twist:',
+    '(I learned this the hard way)',
+    'Between you and me,',
+    'Real talk:'
+  ];
+
+  // Randomly insert conversational elements
+  const sentences = humanizedContent.split('. ');
+  for (let i = 0; i < sentences.length; i++) {
+    if (Math.random() > 0.85 && i > 0 && i < sentences.length - 1) { // 15% chance
+      const insert = conversationalInserts[Math.floor(Math.random() * conversationalInserts.length)];
+      sentences[i] = sentences[i] + ' ' + insert;
+    }
+  }
+  
+  humanizedContent = sentences.join('. ');
+  
+  // Apply imperfections
+  imperfections.forEach(imp => {
+    if (Math.random() > 0.7) { // 30% chance to apply each imperfection
+      humanizedContent = humanizedContent.replace(imp.original, imp.replacement);
+    }
+  });
+
+  return humanizedContent;
+}
+
+function generateHumanSeoTips(): string[] {
+  const tips = [
+    'Your content feels authentic and conversational - that\'s what readers love!',
+    'The personal anecdotes make this way more engaging than typical articles.',
+    'Great job mixing professional insights with relatable experiences.',
+    'This has that friend explaining something type vibe - perfect for engagement!',
+    'The casual tone makes complex topics feel approachable and trustworthy.',
+    'Love how you\'ve avoided jargon-heavy language - keeps readers hooked.',
+    'The personal stories add credibility and make the content memorable.',
+    'Your writing style feels natural and unforced - exactly what Google rewards.',
+    'The conversational approach helps build reader trust and authority.',
+    'Great balance of expertise and relatability throughout the content.'
+  ];
+  
+  // Return 2-3 random tips
+  const shuffled = tips.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.floor(Math.random() * 2) + 2);
 }
 
 function calculateSEOScore(content: string, keywords?: string): {

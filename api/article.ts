@@ -21,10 +21,15 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     
     const title = generateArticleTitle(data.topic, data.style, data.keywords);
     const structure = createArticleStructure(data.topic, data.style, data.includeIntro, data.includeConclusion);
-    const content = generateArticleContent(structure, data.topic, data.keywords, data.style, data.targetWords, data.audience);
+    let content = generateArticleContent(structure, data.topic, data.keywords, data.style, data.targetWords, data.audience);
+    
+    // Apply human-like enhancements
+    content = addHumanTouches(content);
+    
     const seoScore = calculateSEOScore(content, data.keywords);
     const metaDescription = generateMetaDescription(title, data.keywords);
     const suggestedTags = generateSuggestedTags(data.topic, data.keywords, data.style);
+    const humanSeoTips = generateHumanSeoTips();
     
     const result = {
       title,
@@ -32,6 +37,8 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
       seoScore,
       metaDescription,
       suggestedTags,
+      seoTips: humanSeoTips,
+      structure,
       wordCount: content.split(' ').length,
       readingTime: Math.ceil(content.split(' ').length / 200),
       style: data.style,
@@ -189,6 +196,68 @@ function generateSectionContent(heading: string, keywords?: string, tone = 'prof
   ];
   
   return templates[Math.floor(Math.random() * templates.length)];
+}
+
+// Anti-AI detection enhancements
+function addHumanTouches(content: string): string {
+  const imperfections = [
+    { original: /However,/g, replacement: Math.random() > 0.5 ? 'However,' : 'But,' },
+    { original: /Additionally,/g, replacement: Math.random() > 0.5 ? 'Also,' : 'Plus,' },
+    { original: /Furthermore,/g, replacement: Math.random() > 0.5 ? 'What\'s more,' : 'On top of that,' },
+  ];
+
+  let humanizedContent = content;
+  
+  // Add conversational elements
+  const conversationalInserts = [
+    'You know what I mean?',
+    'Make sense?',
+    '(Trust me on this one)',
+    'Here\'s the kicker:',
+    'Plot twist:',
+    '(I learned this the hard way)',
+    'Between you and me,',
+    'Real talk:'
+  ];
+
+  // Randomly insert conversational elements
+  const sentences = humanizedContent.split('. ');
+  for (let i = 0; i < sentences.length; i++) {
+    if (Math.random() > 0.85 && i > 0 && i < sentences.length - 1) { // 15% chance
+      const insert = conversationalInserts[Math.floor(Math.random() * conversationalInserts.length)];
+      sentences[i] = sentences[i] + ' ' + insert;
+    }
+  }
+  
+  humanizedContent = sentences.join('. ');
+  
+  // Apply imperfections
+  imperfections.forEach(imp => {
+    if (Math.random() > 0.7) { // 30% chance to apply each imperfection
+      humanizedContent = humanizedContent.replace(imp.original, imp.replacement);
+    }
+  });
+
+  return humanizedContent;
+}
+
+function generateHumanSeoTips(): string[] {
+  const tips = [
+    'Your content feels authentic and conversational - that\'s what readers love!',
+    'The personal anecdotes make this way more engaging than typical articles.',
+    'Great job mixing professional insights with relatable experiences.',
+    'This has that friend explaining something type vibe - perfect for engagement!',
+    'The casual tone makes complex topics feel approachable and trustworthy.',
+    'Love how you\'ve avoided jargon-heavy language - keeps readers hooked.',
+    'The personal stories add credibility and make the content memorable.',
+    'Your writing style feels natural and unforced - exactly what Google rewards.',
+    'The conversational approach helps build reader trust and authority.',
+    'Great balance of expertise and relatability throughout the content.'
+  ];
+  
+  // Return 2-3 random tips
+  const shuffled = tips.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.floor(Math.random() * 2) + 2);
 }
 
 function calculateSEOScore(content: string, keywords?: string): {
