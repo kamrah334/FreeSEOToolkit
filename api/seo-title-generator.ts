@@ -74,7 +74,7 @@ function generateSeoTitle(keywords: string[], imageContext?: string): string {
 }
 
 function generateRelatedKeywords(baseKeywords: string[], imageContext?: string): string[] {
-  const keywordVariations = [];
+  const keywordVariations: string[] = [];
   
   // Add base keywords
   keywordVariations.push(...baseKeywords);
@@ -142,7 +142,7 @@ function calculateTitleScore(title: string, keywords: string[]): number {
 }
 
 function generateSuggestions(title: string, keywords: string[]): string[] {
-  const suggestions = [];
+  const suggestions: string[] = [];
   
   if (title.length > 60) {
     suggestions.push('Consider shortening the title to under 60 characters for better SEO');

@@ -12,6 +12,7 @@ export default function Navbar() {
     { href: "/meta-description", label: "Meta Description" },
     { href: "/title-case", label: "Title Case" },
     { href: "/keyword-density", label: "Keyword Density" },
+    { href: "/seo-title-generator", label: "SEO Title Generator" },
   ];
 
   return (

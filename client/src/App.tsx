@@ -9,6 +9,7 @@ import HomePage from "@/pages/HomePage";
 import MetaDescriptionTool from "@/pages/MetaDescriptionTool";
 import TitleCaseTool from "@/pages/TitleCaseTool";
 import KeywordDensityTool from "@/pages/KeywordDensityTool";
+import SeoTitleGeneratorTool from "@/pages/SeoTitleGeneratorTool";
 import BlogPublisherTool from "@/pages/BlogPublisherTool";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
@@ -25,6 +26,7 @@ function Router() {
           <Route path="/meta-description" component={MetaDescriptionTool} />
           <Route path="/title-case" component={TitleCaseTool} />
           <Route path="/keyword-density" component={KeywordDensityTool} />
+          <Route path="/seo-title-generator" component={SeoTitleGeneratorTool} />
           <Route path="/blog-publisher" component={BlogPublisherTool} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />

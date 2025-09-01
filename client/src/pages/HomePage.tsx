@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { FileText, Type, BarChart3, Upload } from "lucide-react";
+import { FileText, Type, BarChart3, Upload, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
@@ -33,6 +33,16 @@ export default function HomePage() {
       iconBg: "bg-orange-100 group-hover:bg-orange-200",
       iconColor: "text-orange-600",
       href: "/keyword-density",
+    },
+    {
+      icon: Target,
+      title: "SEO Title Generator",
+      description: "Generate SEO-optimized titles and 30 related keywords for your images and content",
+      badge: "AI-Powered • Free",
+      badgeColor: "text-blue-600",
+      iconBg: "bg-blue-100 group-hover:bg-blue-200",
+      iconColor: "text-blue-600",
+      href: "/seo-title-generator",
     },
     {
       icon: Upload,
