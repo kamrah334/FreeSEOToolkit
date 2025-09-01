@@ -453,24 +453,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Split and clean keywords
       const keywordArray = keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter((k: string) => k.length > 0);
       
-      // Generate SEO title
-      const seoTitle = generateSeoTitle(keywordArray, imageContext);
+      // Generate multiple SEO titles
+      const seoTitles = generateMultipleSeoTitles(keywordArray, imageContext);
       
-      // Generate 30 related keywords
-      const relatedKeywords = generateRelatedKeywords(keywordArray, imageContext);
+      // Generate 30 single-word keywords
+      const relatedKeywords = generateSingleWordKeywords(keywordArray, imageContext);
       const keywordString = relatedKeywords.join(', ');
       
-      // Calculate title score
-      const titleScore = calculateTitleScore(seoTitle, keywordArray);
+      // Calculate title scores
+      const titleScores = seoTitles.map(title => calculateTitleScore(title, keywordArray));
       
-      // Generate suggestions
-      const suggestions = generateTitleSuggestions(seoTitle, keywordArray);
+      // Generate suggestions for the first title
+      const suggestions = generateTitleSuggestions(seoTitles[0], keywordArray);
 
       const response = {
-        seoTitle,
+        seoTitles,
+        seoTitle: seoTitles[0], // Keep backward compatibility
         relatedKeywords,
         keywordString,
-        titleScore,
+        titleScores,
+        titleScore: titleScores[0], // Keep backward compatibility
         suggestions,
       };
 
@@ -482,48 +484,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SEO Title Generator Helper Functions
-  function generateSeoTitle(keywords: string[], imageContext?: string): string {
-    const templates = [
-      `${capitalizeFirst(keywords[0] || 'image')} Guide: ${capitalizeFirst(keywords[1] || 'Complete')} ${capitalizeFirst(keywords[2] || 'Tutorial')}`,
-      `Best ${capitalizeFirst(keywords[0] || 'image')} ${capitalizeFirst(keywords[1] || 'Tips')} for ${capitalizeFirst(keywords[2] || 'Success')}`,
-      `Ultimate ${capitalizeFirst(keywords[0] || 'image')} ${capitalizeFirst(keywords[1] || 'Collection')}: ${capitalizeFirst(keywords[2] || 'Professional')} Guide`,
-      `How to ${capitalizeFirst(keywords[0] || 'image')} ${capitalizeFirst(keywords[1] || 'Effectively')}: ${capitalizeFirst(keywords[2] || 'Expert')} Tips`,
-      `${capitalizeFirst(keywords[0] || 'image')} ${capitalizeFirst(keywords[1] || 'Essentials')}: Complete ${capitalizeFirst(keywords[2] || 'Resource')} Guide`,
+  function generateMultipleSeoTitles(keywords: string[], imageContext?: string): string[] {
+    const primaryKeyword = keywords[0] || 'content';
+    const secondaryKeyword = keywords[1] || 'guide';
+    const tertiaryKeyword = keywords[2] || 'tips';
+    
+    const humanizedTemplates = [
+      `The Complete Guide to ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)}: Everything You Need to Know`,
+      `Master the Art of ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} with These Professional Techniques`,
+      `${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} Made Simple: A Step-by-Step Guide for Beginners`,
+      `Discover the Secrets of Stunning ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} Photography`,
+      `From Amateur to Expert: Your Journey to Perfect ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)}`,
+      `The Ultimate ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} Handbook: Tips, Tricks, and Techniques`,
+      `Capturing Beautiful ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)}: A Photographer's Guide`,
+      `${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} Excellence: How to Create Stunning Visual Content`,
+      `The Art and Science of ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} Photography`,
+      `Transform Your ${capitalizeFirst(primaryKeyword)} ${capitalizeFirst(secondaryKeyword)} Skills with These Expert Tips`
     ];
     
-    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
-    return randomTemplate.length > 60 ? randomTemplate.substring(0, 57) + '...' : randomTemplate;
+    // Select 5 different titles
+    const selectedTitles: string[] = [];
+    const usedIndices = new Set<number>();
+    
+    while (selectedTitles.length < 5 && selectedTitles.length < humanizedTemplates.length) {
+      const randomIndex = Math.floor(Math.random() * humanizedTemplates.length);
+      if (!usedIndices.has(randomIndex)) {
+        usedIndices.add(randomIndex);
+        selectedTitles.push(humanizedTemplates[randomIndex]);
+      }
+    }
+    
+    return selectedTitles;
   }
 
-  function generateRelatedKeywords(baseKeywords: string[], imageContext?: string): string[] {
-    const keywordVariations: string[] = [];
+  function generateSingleWordKeywords(baseKeywords: string[], imageContext?: string): string[] {
+    const singleWordKeywords: string[] = [];
     
-    // Add base keywords
-    keywordVariations.push(...baseKeywords);
-    
-    // Generate variations for each base keyword
-    const suffixes = ['tips', 'guide', 'tutorial', 'examples', 'ideas', 'inspiration', 'design', 'photography', 'art', 'creative'];
-    const prefixes = ['best', 'top', 'professional', 'modern', 'creative', 'stunning', 'beautiful', 'amazing', 'perfect', 'unique'];
-    const relatedTerms = ['image', 'photo', 'picture', 'visual', 'graphic', 'artwork', 'design', 'style', 'concept', 'theme'];
-    
+    // Add base keywords (single words only)
     baseKeywords.forEach(keyword => {
-      // Add suffix variations
-      suffixes.forEach(suffix => {
-        keywordVariations.push(`${keyword} ${suffix}`);
-      });
-      
-      // Add prefix variations
-      prefixes.forEach(prefix => {
-        keywordVariations.push(`${prefix} ${keyword}`);
-      });
+      if (!keyword.includes(' ')) {
+        singleWordKeywords.push(keyword.toLowerCase());
+      }
     });
     
-    // Add related terms
-    keywordVariations.push(...relatedTerms);
+    // Generate related single-word keywords based on primary keyword
+    const primaryKeyword = baseKeywords[0] || 'image';
     
-    // Remove duplicates and limit to 30
-    const uniqueKeywords = Array.from(new Set(keywordVariations));
-    return uniqueKeywords.slice(0, 30);
+    const keywordCategories = {
+      photography: ['camera', 'lens', 'aperture', 'shutter', 'exposure', 'composition', 'lighting', 'portrait', 'macro', 'telephoto'],
+      nature: ['forest', 'mountain', 'ocean', 'sunrise', 'sunset', 'wildlife', 'landscape', 'trees', 'flowers', 'animals'],
+      travel: ['adventure', 'destination', 'journey', 'exploration', 'culture', 'tourist', 'vacation', 'wanderlust', 'backpack', 'passport'],
+      food: ['recipe', 'cooking', 'ingredients', 'cuisine', 'flavor', 'delicious', 'restaurant', 'chef', 'kitchen', 'meal'],
+      technology: ['innovation', 'digital', 'software', 'hardware', 'programming', 'development', 'coding', 'algorithm', 'data', 'system'],
+      business: ['entrepreneur', 'strategy', 'marketing', 'sales', 'leadership', 'management', 'profit', 'growth', 'success', 'corporate'],
+      fashion: ['style', 'trendy', 'designer', 'clothing', 'outfit', 'accessories', 'model', 'runway', 'boutique', 'wardrobe'],
+      health: ['fitness', 'wellness', 'nutrition', 'exercise', 'diet', 'healthy', 'lifestyle', 'medical', 'therapy', 'recovery'],
+      art: ['creative', 'painting', 'drawing', 'sculpture', 'gallery', 'artist', 'masterpiece', 'exhibition', 'canvas', 'brush'],
+      music: ['melody', 'rhythm', 'harmony', 'instrument', 'concert', 'studio', 'recording', 'performance', 'musician', 'symphony']
+    };
+    
+    // General descriptive words
+    const generalKeywords = [
+      'beautiful', 'stunning', 'amazing', 'perfect', 'unique', 'creative', 'professional', 'modern', 'elegant', 'inspiring',
+      'captivating', 'breathtaking', 'magnificent', 'gorgeous', 'spectacular', 'exceptional', 'outstanding', 'remarkable',
+      'impressive', 'fantastic', 'wonderful', 'incredible', 'extraordinary', 'brilliant', 'excellent', 'superb',
+      'quality', 'premium', 'luxury', 'exclusive', 'authentic', 'original', 'fresh', 'vibrant', 'dynamic', 'powerful'
+    ];
+    
+    // Add category-specific keywords
+    Object.entries(keywordCategories).forEach(([category, words]) => {
+      if (primaryKeyword.includes(category) || 
+          baseKeywords.some(kw => kw.includes(category))) {
+        singleWordKeywords.push(...words);
+      }
+    });
+    
+    // Add general keywords
+    singleWordKeywords.push(...generalKeywords);
+    
+    // Remove duplicates and filter to ensure single words only
+    const uniqueKeywords = Array.from(new Set(singleWordKeywords))
+      .filter(keyword => keyword.length > 2 && !keyword.includes(' '))
+      .slice(0, 30);
+    
+    return uniqueKeywords;
   }
 
   function calculateTitleScore(title: string, keywords: string[]): number {

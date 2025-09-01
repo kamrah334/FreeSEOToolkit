@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Sparkles, Target, TrendingUp } from "lucide-react";
+import { Copy, Sparkles, Target, TrendingUp, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const seoTitleRequestSchema = z.object({
@@ -20,10 +20,12 @@ const seoTitleRequestSchema = z.object({
 type SeoTitleRequest = z.infer<typeof seoTitleRequestSchema>;
 
 interface SeoTitleResponse {
-  seoTitle: string;
+  seoTitles: string[];
+  seoTitle: string; // backward compatibility
   relatedKeywords: string[];
   keywordString: string;
-  titleScore: number;
+  titleScores: number[];
+  titleScore: number; // backward compatibility
   suggestions: string[];
 }
 
@@ -74,6 +76,36 @@ export default function SeoTitleGeneratorTool() {
     toast({
       title: "Copied!",
       description: "Text copied to clipboard",
+    });
+  };
+
+  const downloadCSV = () => {
+    if (!result) return;
+    
+    const csvContent = [
+      // Headers
+      'Type,Content,Score',
+      // Titles
+      ...result.seoTitles.map((title, index) => 
+        `Title,"${title}",${result.titleScores[index] || 'N/A'}`
+      ),
+      // Keywords
+      ...result.relatedKeywords.map(keyword => `Keyword,"${keyword}",N/A`)
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'seo-titles-keywords.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "Downloaded!",
+      description: "CSV file has been downloaded",
     });
   };
 
@@ -162,40 +194,68 @@ export default function SeoTitleGeneratorTool() {
 
         {result && (
           <div className="space-y-6">
-            {/* SEO Title */}
+            {/* Download CSV Button */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-blue-900">Export Results</h3>
+                    <p className="text-sm text-blue-700">Download all titles and keywords as CSV file</p>
+                  </div>
+                  <Button
+                    onClick={downloadCSV}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Multiple SEO Titles */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    Generated SEO Title
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Badge className={getScoreColor(result.titleScore)}>
-                      {getScoreBadge(result.titleScore)} ({result.titleScore}/100)
-                    </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(result.seoTitle)}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
-                  </div>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
+                  Generated SEO Titles ({result.seoTitles.length} options)
                 </CardTitle>
+                <CardDescription>
+                  Choose the title that best fits your content and audience
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-lg font-medium text-gray-900">{result.seoTitle}</p>
-                </div>
+              <CardContent className="space-y-4">
+                {result.seoTitles.map((title, index) => (
+                  <div key={index} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-medium text-gray-500">Option {index + 1}</span>
+                          <Badge className={getScoreColor(result.titleScores[index])}>
+                            {getScoreBadge(result.titleScores[index])} ({result.titleScores[index]}/100)
+                          </Badge>
+                        </div>
+                        <p className="text-lg font-medium text-gray-900 leading-relaxed">{title}</p>
+                        <p className="text-sm text-gray-500 mt-1">{title.length} characters</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(title)}
+                        className="ml-4"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
                 
                 {result.suggestions.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Suggestions for Improvement:</h4>
+                  <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h4 className="font-medium text-yellow-900 mb-2">Suggestions for Improvement:</h4>
                     <ul className="list-disc list-inside space-y-1">
                       {result.suggestions.map((suggestion, index) => (
-                        <li key={index} className="text-sm text-gray-600">{suggestion}</li>
+                        <li key={index} className="text-sm text-yellow-800">{suggestion}</li>
                       ))}
                     </ul>
                   </div>
@@ -207,7 +267,7 @@ export default function SeoTitleGeneratorTool() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  <span>Related Keywords (30 keywords)</span>
+                  <span>Single-Word Keywords ({result.relatedKeywords.length} keywords)</span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -218,35 +278,34 @@ export default function SeoTitleGeneratorTool() {
                   </Button>
                 </CardTitle>
                 <CardDescription>
-                  Use these keywords for your content, alt text, and SEO optimization
+                  Use these single-word keywords for your content, alt text, and SEO optimization. Each keyword is unique and non-repetitive.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
                   <p className="text-sm text-gray-700 font-mono leading-relaxed">
                     {result.keywordString}
                   </p>
                 </div>
                 
-                <div className="mt-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Keyword Tags:</h4>
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">Interactive Keyword Tags:</h4>
                   <div className="flex flex-wrap gap-2">
-                    {result.relatedKeywords.slice(0, 15).map((keyword, index) => (
+                    {result.relatedKeywords.map((keyword, index) => (
                       <Badge
                         key={index}
                         variant="secondary"
-                        className="cursor-pointer hover:bg-primary-100"
+                        className="cursor-pointer hover:bg-primary-100 transition-colors"
                         onClick={() => copyToClipboard(keyword)}
+                        title={`Click to copy "${keyword}"`}
                       >
                         {keyword}
                       </Badge>
                     ))}
-                    {result.relatedKeywords.length > 15 && (
-                      <Badge variant="outline">
-                        +{result.relatedKeywords.length - 15} more
-                      </Badge>
-                    )}
                   </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Click any keyword to copy it individually
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -262,9 +321,10 @@ export default function SeoTitleGeneratorTool() {
             <ol className="list-decimal list-inside space-y-2">
               <li>Enter keywords related to your image or content (separated by commas)</li>
               <li>Optionally provide context about your image for better results</li>
-              <li>Click "Generate" to create an SEO-optimized title and 30 related keywords</li>
-              <li>Use the generated title for your content, blog posts, or image descriptions</li>
-              <li>Copy the keyword string for use in alt text, meta tags, or content optimization</li>
+              <li>Click "Generate" to create 5 SEO-optimized titles and 30 single-word keywords</li>
+              <li>Choose from multiple title options with SEO scores and character counts</li>
+              <li>Click individual keywords or copy all keywords for SEO optimization</li>
+              <li>Download all results as a CSV file for easy use in your projects</li>
             </ol>
           </CardContent>
         </Card>
