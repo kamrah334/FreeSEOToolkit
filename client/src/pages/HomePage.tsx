@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { FileText, Type, BarChart3, List, PenTool, FileEdit, Search, Upload } from "lucide-react";
+import { FileText, Type, BarChart3, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function HomePage() {
@@ -33,46 +33,6 @@ export default function HomePage() {
       iconBg: "bg-orange-100 group-hover:bg-orange-200",
       iconColor: "text-orange-600",
       href: "/keyword-density",
-    },
-    {
-      icon: List,
-      title: "Blog Outline",
-      description: "Create structured blog outlines with H1, H2, H3 headings using AI",
-      badge: "AI-Powered • Free",
-      badgeColor: "text-purple-600",
-      iconBg: "bg-purple-100 group-hover:bg-purple-200",
-      iconColor: "text-purple-600",
-      href: "/blog-outline",
-    },
-    {
-      icon: PenTool,
-      title: "Blog Post Writer",
-      description: "Generate complete SEO-optimized blog posts with automatic keyword integration",
-      badge: "SEO Optimized • Free",
-      badgeColor: "text-green-600",
-      iconBg: "bg-green-100 group-hover:bg-green-200",
-      iconColor: "text-green-600",
-      href: "/blog-post-writer",
-    },
-    {
-      icon: FileEdit,
-      title: "Article Writer",
-      description: "Create professional articles with customizable styles and automatic SEO scoring",
-      badge: "Professional • Free",
-      badgeColor: "text-blue-600",
-      iconBg: "bg-blue-100 group-hover:bg-blue-200",
-      iconColor: "text-blue-600",
-      href: "/article-writer",
-    },
-    {
-      icon: Search,
-      title: "AI Content Detector",
-      description: "Analyze content to detect AI-generated text and get recommendations for human-like improvements",
-      badge: "Anti-AI • Free",
-      badgeColor: "text-red-600",
-      iconBg: "bg-red-100 group-hover:bg-red-200",
-      iconColor: "text-red-600",
-      href: "/ai-detector",
     },
     {
       icon: Upload,

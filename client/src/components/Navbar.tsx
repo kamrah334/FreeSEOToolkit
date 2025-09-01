@@ -12,9 +12,6 @@ export default function Navbar() {
     { href: "/meta-description", label: "Meta Description" },
     { href: "/title-case", label: "Title Case" },
     { href: "/keyword-density", label: "Keyword Density" },
-    { href: "/blog-outline", label: "Blog Outline" },
-    { href: "/blog-post-writer", label: "Blog Writer" },
-    { href: "/article-writer", label: "Article Writer" },
   ];
 
   return (

@@ -9,10 +9,6 @@ import HomePage from "@/pages/HomePage";
 import MetaDescriptionTool from "@/pages/MetaDescriptionTool";
 import TitleCaseTool from "@/pages/TitleCaseTool";
 import KeywordDensityTool from "@/pages/KeywordDensityTool";
-import BlogOutlineTool from "@/pages/BlogOutlineTool";
-import BlogPostWriterTool from "@/pages/BlogPostWriterTool";
-import ArticleWriterTool from "@/pages/ArticleWriterTool";
-import AiDetectorTool from "@/pages/AiDetectorTool";
 import BlogPublisherTool from "@/pages/BlogPublisherTool";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import TermsOfService from "@/pages/TermsOfService";
@@ -29,10 +25,6 @@ function Router() {
           <Route path="/meta-description" component={MetaDescriptionTool} />
           <Route path="/title-case" component={TitleCaseTool} />
           <Route path="/keyword-density" component={KeywordDensityTool} />
-          <Route path="/blog-outline" component={BlogOutlineTool} />
-          <Route path="/blog-post-writer" component={BlogPostWriterTool} />
-          <Route path="/article-writer" component={ArticleWriterTool} />
-          <Route path="/ai-detector" component={AiDetectorTool} />
           <Route path="/blog-publisher" component={BlogPublisherTool} />
           <Route path="/privacy-policy" component={PrivacyPolicy} />
           <Route path="/terms-of-service" component={TermsOfService} />
