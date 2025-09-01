@@ -522,7 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     keywordVariations.push(...relatedTerms);
     
     // Remove duplicates and limit to 30
-    const uniqueKeywords = [...new Set(keywordVariations)];
+    const uniqueKeywords = Array.from(new Set(keywordVariations));
     return uniqueKeywords.slice(0, 30);
   }
 
